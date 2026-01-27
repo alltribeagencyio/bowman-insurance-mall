@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for dir in apps/users apps/policies apps/payments apps/claims apps/documents apps/notifications apps/workflows apps/analytics)",
+      "Bash(do touch \"$dir/__init__.py\" \"$dir/models.py\" \"$dir/views.py\" \"$dir/serializers.py\" \"$dir/urls.py\" \"$dir/admin.py\" \"$dir/tasks.py\" \"$dir/tests.py\")",
+      "Bash(done)",
+      "Bash(python manage.py makemigrations:*)",
+      "Bash(where:*)",
+      "Bash(npm install)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(npm start)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)"
+    ]
+  }
+}
