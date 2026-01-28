@@ -98,9 +98,8 @@ export function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-full bg-primary" />
-            <span className="text-xl font-bold">Bowman Insurance</span>
+          <Link href="/">
+            <span className="text-2xl font-bold text-primary">Bowman</span>
           </Link>
 
           {/* Desktop Navigation - Categories */}

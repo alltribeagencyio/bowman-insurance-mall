@@ -75,13 +75,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
           {!sidebarCollapsed && (
-            <Link href="/admin" className="flex items-center gap-2">
-              <Shield className="h-8 w-8 text-primary" />
-              <span className="font-bold text-xl">Admin</span>
+            <Link href="/admin">
+              <span className="font-bold text-2xl text-primary">Bowman</span>
             </Link>
           )}
           {sidebarCollapsed && (
-            <Shield className="h-8 w-8 text-primary mx-auto" />
+            <Link href="/admin">
+              <span className="font-bold text-xl text-primary mx-auto">B</span>
+            </Link>
           )}
           <Button
             variant="ghost"
@@ -139,20 +140,18 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Collapse toggle button */}
-        <div className="border-t border-gray-200 dark:border-gray-700 p-4 hidden lg:block">
+        <div className="border-t border-gray-200 dark:border-gray-700 p-4 hidden lg:flex justify-center">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className={cn("w-full", sidebarCollapsed && "justify-center")}
+            className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {sidebarCollapsed ? (
               <ChevronRight className="h-4 w-4" />
             ) : (
-              <>
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Collapse
-              </>
+              <ChevronLeft className="h-4 w-4" />
             )}
           </Button>
         </div>

@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
-import { Shield } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function LoginPage() {
@@ -44,12 +43,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-            <Shield className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold">Welcome Back</h1>
+          <h1 className="text-4xl font-bold text-primary mb-4">Bowman</h1>
+          <h2 className="text-2xl font-bold">Welcome Back</h2>
           <p className="text-muted-foreground mt-2">
-            Sign in to your Bowman Insurance account
+            Sign in to your Bowman account
           </p>
         </div>
 
