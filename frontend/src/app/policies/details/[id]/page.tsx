@@ -953,8 +953,11 @@ export default function PolicyDetailPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Button className="w-full" size="lg">
-                        Get Instant Quote
+                      <Button className="w-full" size="lg" asChild>
+                        <Link href={`/purchase/${params.id}`}>
+                          <Shield className="h-4 w-4 mr-2" />
+                          Buy Cover
+                        </Link>
                       </Button>
                       <Button variant="outline" className="w-full">
                         Add to Compare

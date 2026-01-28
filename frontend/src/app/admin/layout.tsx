@@ -73,15 +73,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         )}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700 relative">
           {!sidebarCollapsed && (
             <Link href="/admin">
               <span className="font-bold text-2xl text-primary">Bowman</span>
             </Link>
           )}
           {sidebarCollapsed && (
-            <Link href="/admin">
-              <span className="font-bold text-xl text-primary mx-auto">B</span>
+            <Link href="/admin" className="mx-auto">
+              <span className="font-bold text-xl text-primary">B</span>
             </Link>
           )}
           <Button
@@ -92,10 +92,30 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           >
             <X className="h-5 w-5" />
           </Button>
+
+          {/* Floating Collapse/Expand Toggle - Desktop Only */}
+          <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 z-10">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-md"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto h-[calc(100vh-16rem)]">
+        <nav className={cn(
+          "flex-1 px-4 py-6 space-y-1 h-[calc(100vh-16rem)]",
+          sidebarCollapsed ? "overflow-visible" : "overflow-y-auto"
+        )}>
           {navigation.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
             return (
@@ -138,23 +158,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             )
           })}
         </nav>
-
-        {/* Collapse toggle button */}
-        <div className="border-t border-gray-200 dark:border-gray-700 p-4 hidden lg:flex justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {sidebarCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
 
         {/* User info */}
         <div className="border-t border-gray-200 dark:border-gray-700 p-4">

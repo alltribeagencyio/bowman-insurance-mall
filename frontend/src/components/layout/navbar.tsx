@@ -2,9 +2,11 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Menu, X, ShoppingCart, User, LogOut, Car, Heart, Users, Home, Plane, Building2 } from 'lucide-react'
-import { useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { Menu, X, ShoppingCart, User, LogOut, Car, Heart, Users, Home, Plane, Building2, Search } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { ALL_PRODUCTS } from '@/data/insuranceProducts'
 
 // Insurance categories with their plans and companies
 const insuranceCategories = [
@@ -86,7 +88,38 @@ const insuranceCategories = [
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [searchExpanded, setSearchExpanded] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchRef = useRef<HTMLDivElement>(null)
   const { user, isAuthenticated, logout } = useAuth()
+
+  // Close search when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setSearchExpanded(false)
+        setSearchQuery('')
+      }
+    }
+
+    if (searchExpanded) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [searchExpanded])
+
+  // Filter products based on search query
+  const searchResults = searchQuery.trim()
+    ? ALL_PRODUCTS.filter(product =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 6) // Limit to 6 results
+    : []
 
   const handleLogout = async () => {
     await logout()
@@ -184,6 +217,106 @@ export function Navbar() {
           <div className="hidden lg:flex items-center space-x-4">
             {isAuthenticated ? (
               <>
+                {/* Expandable Search */}
+                <div ref={searchRef} className="relative">
+                  {searchExpanded ? (
+                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-200">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="text"
+                          placeholder="Search insurance products..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-[300px] pl-10 pr-4"
+                          autoFocus
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSearchExpanded(false)
+                          setSearchQuery('')
+                        }}
+                      >
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSearchExpanded(true)}
+                    >
+                      <Search className="h-5 w-5" />
+                    </Button>
+                  )}
+
+                  {/* Search Results Dropdown */}
+                  {searchExpanded && searchQuery.trim() && (
+                    <div className="absolute top-full right-0 mt-2 w-[400px] bg-background border rounded-lg shadow-xl max-h-[400px] overflow-y-auto z-50">
+                      {searchResults.length > 0 ? (
+                        <div className="p-2">
+                          {searchResults.map((product) => (
+                            <Link
+                              key={product.id}
+                              href={`/policies/${product.category}?product=${product.id}`}
+                              className="block p-3 rounded-lg hover:bg-muted transition-colors"
+                              onClick={() => {
+                                setSearchExpanded(false)
+                                setSearchQuery('')
+                              }}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-sm">{product.name}</h4>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {product.company} • {product.category}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                    {product.description}
+                                  </p>
+                                </div>
+                                <div className="text-sm font-semibold text-primary whitespace-nowrap">
+                                  From KES {product.premium.toLocaleString()}
+                                </div>
+                              </div>
+                            </Link>
+                          ))}
+                          <div className="border-t mt-2 pt-2 px-3">
+                            <Link
+                              href="/shop"
+                              className="text-sm text-primary hover:underline"
+                              onClick={() => {
+                                setSearchExpanded(false)
+                                setSearchQuery('')
+                              }}
+                            >
+                              View all products →
+                            </Link>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-6 text-center text-muted-foreground">
+                          <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No products found for "{searchQuery}"</p>
+                          <Link
+                            href="/shop"
+                            className="text-sm text-primary hover:underline mt-2 inline-block"
+                            onClick={() => {
+                              setSearchExpanded(false)
+                              setSearchQuery('')
+                            }}
+                          >
+                            Browse all products
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <Button variant="ghost" size="icon">
                   <ShoppingCart className="h-5 w-5" />
                 </Button>
