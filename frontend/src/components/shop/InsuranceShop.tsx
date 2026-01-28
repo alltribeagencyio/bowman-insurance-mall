@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -50,15 +50,21 @@ export function InsuranceShop({
   // Filter states
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([])
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all')
-  const [priceRange, setPriceRange] = useState({
-    min: filterOptions.priceRange.min,
-    max: filterOptions.priceRange.max
-  })
-  const [coverageRange, setCoverageRange] = useState({
-    min: filterOptions.coverageRange.min,
-    max: filterOptions.coverageRange.max
-  })
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 1000000 })
+  const [coverageRange, setCoverageRange] = useState({ min: 0, max: 100000000 })
   const [minRating, setMinRating] = useState(0)
+
+  // Initialize filter ranges from props
+  useEffect(() => {
+    setPriceRange({
+      min: filterOptions.priceRange.min,
+      max: filterOptions.priceRange.max
+    })
+    setCoverageRange({
+      min: filterOptions.coverageRange.min,
+      max: filterOptions.coverageRange.max
+    })
+  }, [filterOptions.priceRange.min, filterOptions.priceRange.max, filterOptions.coverageRange.min, filterOptions.coverageRange.max])
 
   // Apply filters
   const filteredProducts = products

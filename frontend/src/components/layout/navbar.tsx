@@ -105,6 +105,15 @@ export function Navbar() {
 
           {/* Desktop Navigation - Categories */}
           <div className="hidden lg:flex items-center space-x-1 justify-center flex-1">
+            {/* Mall Link - All Products */}
+            <Link
+              href="/shop"
+              className="px-4 py-2 text-sm font-semibold hover:text-primary flex items-center gap-2 rounded-md hover:bg-muted transition-colors bg-primary/5"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Mall
+            </Link>
+
             {insuranceCategories.map((category) => {
               const Icon = category.icon
               return (
@@ -214,6 +223,23 @@ export function Navbar() {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="lg:hidden py-4 space-y-4 max-h-[80vh] overflow-y-auto">
+            {/* Mall Link - All Products */}
+            <Link
+              href="/shop"
+              className="flex items-center gap-3 px-3 py-3 text-sm font-medium bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors mx-2"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <div className="p-2 rounded-lg bg-primary">
+                <ShoppingCart className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="flex-1">
+                <div className="font-bold">Insurance Mall</div>
+                <div className="text-xs text-muted-foreground">
+                  Browse all products
+                </div>
+              </div>
+            </Link>
+
             {/* Insurance Categories */}
             <div className="space-y-2">
               <div className="text-xs font-semibold text-muted-foreground px-2 mb-3">INSURANCE PRODUCTS</div>
