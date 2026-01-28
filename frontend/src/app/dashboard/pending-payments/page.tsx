@@ -492,7 +492,7 @@ function PendingPaymentsContent() {
                     </div>
 
                     {/* Installment Progress */}
-                    {schedule.schedule_type === 'installment' && schedule.total_installments && (
+                    {schedule.schedule_type === 'installment' && schedule.total_installments && schedule.installment_number && (
                       <div className="ml-16 mt-4 pt-4 border-t">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm text-muted-foreground">Payment Progress</span>

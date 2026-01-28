@@ -6,6 +6,7 @@ export interface User {
   last_name: string
   phone: string
   role: 'customer' | 'staff' | 'admin' | 'assessor'
+  is_staff?: boolean
   is_verified: boolean
   created_at: string
 }

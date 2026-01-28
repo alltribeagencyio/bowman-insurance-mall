@@ -63,8 +63,8 @@ function CardPaymentContent() {
         }, 1500)
       } else {
         setStatus('idle')
-        setErrorMessage(response.message || 'Failed to initialize payment')
-        toast.error(response.message || 'Failed to initialize payment')
+        setErrorMessage('Failed to initialize payment')
+        toast.error('Failed to initialize payment')
       }
     } catch (error: any) {
       console.error('Payment initialization error:', error)
