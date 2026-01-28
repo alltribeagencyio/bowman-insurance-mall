@@ -145,7 +145,38 @@ export function InsuranceShop({
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
             <h1 className="text-4xl font-bold mb-4">{title}</h1>
-            <p className="text-xl text-muted-foreground mb-8">{description}</p>
+            <p className="text-xl text-muted-foreground mb-6">{description}</p>
+
+            {/* Subcategory Quick Filters (Chips) */}
+            {showSubcategories && filterOptions.subcategories && filterOptions.subcategories.length > 0 && (
+              <div className="mb-6">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedSubcategory('all')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      selectedSubcategory === 'all'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted hover:bg-muted/80'
+                    }`}
+                  >
+                    All Types
+                  </button>
+                  {filterOptions.subcategories.map(sub => (
+                    <button
+                      key={sub}
+                      onClick={() => setSelectedSubcategory(sub)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                        selectedSubcategory === sub
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted hover:bg-muted/80'
+                      }`}
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col md:flex-row gap-4">
               {/* Search Bar */}
