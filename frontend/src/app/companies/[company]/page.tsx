@@ -1,20 +1,15 @@
-'use client'
-
-import { use } from 'react'
 import { InsuranceShop } from '@/components/shop/InsuranceShop'
 import {
   getProductsByCompany,
   getUniqueCompanies,
-  ALL_PRODUCTS,
 } from '@/data/insuranceProducts'
 
 interface CompanyPageProps {
-  params: Promise<{ company: string }>
+  params: { company: string }
 }
 
 export default function CompanyPage({ params }: CompanyPageProps) {
-  const resolvedParams = use(params)
-  const companySlug = resolvedParams.company
+  const { company: companySlug } = params
 
   // Convert slug back to company name (e.g., "aar-insurance" -> "AAR Insurance")
   const companyName = decodeURIComponent(companySlug)

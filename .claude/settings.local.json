@@ -19,7 +19,11 @@
       "Bash(git push:*)",
       "Bash(grep:*)",
       "Bash(npx next lint:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(ls:*)",
+      "Bash(npm run start)"
     ]
   }
 }

@@ -1,32 +1,17 @@
-'use client'
-
-import { use, useEffect, useState } from 'react'
 import { InsuranceShop } from '@/components/shop/InsuranceShop'
 import {
   getProductsByCategory,
   getUniqueCompanies,
   getSubcategoriesByCategory,
   getCategoryInfo,
-  type InsuranceProduct,
 } from '@/data/insuranceProducts'
 
 interface CategoryPageProps {
-  params: Promise<{ category: string }>
+  params: { category: string }
 }
 
 export default function CategoryPage({ params }: CategoryPageProps) {
-  const resolvedParams = use(params)
-  const category = resolvedParams.category
-
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return null
-  }
+  const { category } = params
 
   // Get products and filter options
   const products = getProductsByCategory(category)
