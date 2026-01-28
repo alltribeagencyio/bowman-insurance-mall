@@ -9,12 +9,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   LayoutDashboard,
-  Users,
   Shield,
   DollarSign,
   FileText,
-  BarChart3,
-  Settings,
+  Download,
+  User,
   LogOut,
   Menu,
   X,
@@ -22,7 +21,10 @@ import {
   Search,
   ChevronDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CreditCard,
+  Clock,
+  Home
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -34,16 +36,15 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Users', href: '/admin/users', icon: Users },
-  { name: 'Policies', href: '/admin/policies', icon: Shield },
-  { name: 'Transactions', href: '/admin/transactions', icon: DollarSign },
-  { name: 'Claims', href: '/admin/claims', icon: FileText, badge: 5 },
-  { name: 'Reports', href: '/admin/reports', icon: BarChart3 },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'My Policies', href: '/dashboard/my-policies', icon: Shield },
+  { name: 'Payments', href: '/dashboard/payments', icon: DollarSign },
+  { name: 'Pending Payments', href: '/dashboard/pending-payments', icon: Clock, badge: 2 },
+  { name: 'Documents', href: '/dashboard/documents', icon: Download },
+  { name: 'Profile', href: '/dashboard/profile', icon: User },
 ]
 
-function AdminLayoutContent({ children }: { children: React.ReactNode }) {
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -75,9 +76,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
           {!sidebarCollapsed && (
-            <Link href="/admin" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <Shield className="h-8 w-8 text-primary" />
-              <span className="font-bold text-xl">Admin</span>
+              <span className="font-bold text-xl">Bowman</span>
             </Link>
           )}
           {sidebarCollapsed && (
@@ -93,10 +94,31 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           </Button>
         </div>
 
+        {/* Quick Actions */}
+        {!sidebarCollapsed && (
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <Link href="/shop">
+              <Button className="w-full" size="sm">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Buy Insurance
+              </Button>
+            </Link>
+          </div>
+        )}
+        {sidebarCollapsed && (
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-center">
+            <Link href="/shop">
+              <Button size="sm" className="w-10 h-10 p-0" title="Buy Insurance">
+                <CreditCard className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        )}
+
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto h-[calc(100vh-16rem)]">
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto h-[calc(100vh-20rem)]">
           {navigation.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
             return (
               <Link
                 key={item.name}
@@ -157,17 +179,32 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           </Button>
         </div>
 
+        {/* Back to Home */}
+        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+          <Link href="/">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn("w-full", sidebarCollapsed ? "justify-center" : "justify-start")}
+              title="Back to Home"
+            >
+              <Home className="h-4 w-4" />
+              {!sidebarCollapsed && <span className="ml-2">Back to Home</span>}
+            </Button>
+          </Link>
+        </div>
+
         {/* User info */}
         <div className="border-t border-gray-200 dark:border-gray-700 p-4">
           {!sidebarCollapsed ? (
             <>
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                  {user?.first_name?.[0] || 'A'}
+                  {user?.first_name?.[0] || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {user?.first_name || 'Admin'} {user?.last_name || 'User'}
+                    {user?.first_name || 'User'} {user?.last_name || ''}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
                     {user?.email}
@@ -187,7 +224,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           ) : (
             <div className="space-y-3">
               <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold mx-auto">
-                {user?.first_name?.[0] || 'A'}
+                {user?.first_name?.[0] || 'U'}
               </div>
               <Button
                 variant="outline"
@@ -224,7 +261,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Search policies, claims..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
@@ -243,7 +280,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               {/* Profile dropdown - simplified for now */}
               <Button variant="ghost" size="sm" className="hidden sm:flex items-center gap-2">
                 <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold">
-                  {user?.first_name?.[0] || 'A'}
+                  {user?.first_name?.[0] || 'U'}
                 </div>
                 <ChevronDown className="h-4 w-4" />
               </Button>
@@ -260,10 +297,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   )
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ProtectedRoute requireAdmin>
-      <AdminLayoutContent>{children}</AdminLayoutContent>
+    <ProtectedRoute>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
     </ProtectedRoute>
   )
 }
