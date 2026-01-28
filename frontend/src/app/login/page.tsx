@@ -118,12 +118,25 @@ export default function LoginPage() {
           </CardFooter>
         </Card>
 
-        {/* Demo Credentials (Remove in production) */}
-        <Card className="mt-4 bg-muted/50">
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground text-center">
-              Demo: Use any email/password to test (backend not connected yet)
-            </p>
+        {/* Demo Credentials */}
+        <Card className="mt-4 border-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Test Credentials</CardTitle>
+            <CardDescription className="text-xs">
+              Use these credentials to explore the platform
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="rounded-lg border bg-card p-3 space-y-1">
+              <p className="text-xs font-semibold text-primary">Admin Account</p>
+              <p className="text-xs text-muted-foreground">Email: admin@bowman.co.ke</p>
+              <p className="text-xs text-muted-foreground">Password: Admin123!</p>
+            </div>
+            <div className="rounded-lg border bg-card p-3 space-y-1">
+              <p className="text-xs font-semibold text-primary">Customer Account</p>
+              <p className="text-xs text-muted-foreground">Email: customer@test.com</p>
+              <p className="text-xs text-muted-foreground">Password: Customer123!</p>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -95,6 +95,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
+      // Test users for demo (remove when backend is connected)
+      const TEST_USERS: Record<string, { user: User, tokens: AuthTokens }> = {
+        'admin@bowman.co.ke': {
+          user: {
+            id: '1',
+            email: 'admin@bowman.co.ke',
+            first_name: 'Admin',
+            last_name: 'User',
+            phone: '+254700000000',
+            is_staff: true,
+            is_verified: true,
+            role: 'admin',
+            created_at: new Date().toISOString(),
+          },
+          tokens: {
+            access: 'test_admin_access_token',
+            refresh: 'test_admin_refresh_token',
+          },
+        },
+        'customer@test.com': {
+          user: {
+            id: '2',
+            email: 'customer@test.com',
+            first_name: 'John',
+            last_name: 'Doe',
+            phone: '+254711111111',
+            is_staff: false,
+            is_verified: true,
+            role: 'customer',
+            created_at: new Date().toISOString(),
+          },
+          tokens: {
+            access: 'test_customer_access_token',
+            refresh: 'test_customer_refresh_token',
+          },
+        },
+      }
+
+      // Check test users first
+      if (TEST_USERS[email] && (password === 'Admin123!' || password === 'Customer123!')) {
+        const testData = TEST_USERS[email]
+        setUser(testData.user)
+        setTokens(testData.tokens)
+
+        // Redirect based on role
+        if (testData.user.is_staff || testData.user.role === 'admin') {
+          router.push('/admin')
+        } else {
+          router.push('/dashboard')
+        }
+        return
+      }
+
+      // If not a test user, try real API
       const response = await apiClient.post('/auth/login/', {
         email,
         password,
@@ -105,10 +159,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userData)
       setTokens(tokenData)
 
-      router.push('/dashboard')
+      // Redirect based on user role
+      if (userData.is_staff || userData.role === 'admin') {
+        router.push('/admin')
+      } else {
+        router.push('/dashboard')
+      }
     } catch (error: any) {
       console.error('Login failed:', error)
-      throw new Error(error.response?.data?.message || 'Login failed')
+      throw new Error(error.response?.data?.message || 'Invalid email or password')
     }
   }, [router])
 
