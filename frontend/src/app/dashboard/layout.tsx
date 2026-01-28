@@ -245,20 +245,19 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <div className={cn("transition-all duration-300", sidebarCollapsed ? "lg:pl-20" : "lg:pl-64")}>
-        {/* Top navbar */}
-        <header className="sticky top-0 z-30 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <div className="h-full px-4 lg:px-8 flex items-center justify-between gap-4">
+        {/* Top navbar - Mobile only */}
+        <header className="sticky top-0 z-30 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 lg:hidden">
+          <div className="h-full px-4 flex items-center justify-between gap-4">
             {/* Mobile menu button */}
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-5 w-5" />
             </Button>
 
-            {/* Search */}
+            {/* Search - Mobile */}
             <div className="flex-1 max-w-lg">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -272,20 +271,12 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            {/* Right side actions */}
+            {/* Right side actions - Mobile */}
             <div className="flex items-center gap-2">
               {/* Notifications */}
               <Button variant="ghost" size="sm" className="relative">
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-              </Button>
-
-              {/* Profile dropdown - simplified for now */}
-              <Button variant="ghost" size="sm" className="hidden sm:flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold">
-                  {user?.first_name?.[0] || 'U'}
-                </div>
-                <ChevronDown className="h-4 w-4" />
               </Button>
             </div>
           </div>
