@@ -84,7 +84,6 @@ const insuranceCategories = [
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const { user, isAuthenticated, logout } = useAuth()
 
   const handleLogout = async () => {
@@ -103,15 +102,13 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Navigation - Categories */}
-          <div className="hidden lg:flex items-center space-x-1">
+          <div className="hidden lg:flex items-center space-x-1 justify-center flex-1">
             {insuranceCategories.map((category) => {
               const Icon = category.icon
               return (
                 <div
                   key={category.id}
-                  className="relative"
-                  onMouseEnter={() => setActiveCategory(category.id)}
-                  onMouseLeave={() => setActiveCategory(null)}
+                  className="relative group"
                 >
                   <Link
                     href={category.href}
@@ -121,10 +118,9 @@ export function Navbar() {
                     {category.name}
                   </Link>
 
-                  {/* Mega Menu Dropdown */}
-                  {activeCategory === category.id && (
-                    <div className="absolute top-full left-0 mt-2 w-[600px] bg-background border rounded-lg shadow-xl p-6">
-                      <div className="grid grid-cols-2 gap-6">
+                  {/* Mega Menu Dropdown - Center aligned with pointer-events to keep menu open */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[600px] bg-background border rounded-lg shadow-xl p-6 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none group-hover:pointer-events-auto z-50">
+                    <div className="grid grid-cols-2 gap-6">
                         {/* Plans Column */}
                         <div>
                           <h3 className="font-semibold text-sm mb-3 text-primary">Popular Plans</h3>
@@ -134,7 +130,6 @@ export function Navbar() {
                                 key={idx}
                                 href={category.href}
                                 className="block p-3 rounded-lg hover:bg-muted transition-colors"
-                                onClick={() => setActiveCategory(null)}
                               >
                                 <div className="font-medium text-sm">{plan.name}</div>
                                 <div className="text-xs text-muted-foreground">{plan.price}</div>
@@ -152,7 +147,6 @@ export function Navbar() {
                                 key={idx}
                                 href={category.href}
                                 className="block p-3 rounded-lg hover:bg-muted transition-colors text-sm"
-                                onClick={() => setActiveCategory(null)}
                               >
                                 {company} Insurance
                               </Link>
@@ -166,13 +160,11 @@ export function Navbar() {
                         <Link
                           href={category.href}
                           className="text-sm font-medium text-primary hover:underline flex items-center"
-                          onClick={() => setActiveCategory(null)}
                         >
                           View All {category.name} Insurance Options →
                         </Link>
                       </div>
                     </div>
-                  )}
                 </div>
               )
             })}
