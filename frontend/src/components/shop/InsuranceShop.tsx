@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
-import { Search, SlidersHorizontal, X, Star, ChevronDown } from 'lucide-react'
+import { Search, SlidersHorizontal, X, Star, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface InsuranceProduct {
   id: string
@@ -53,6 +53,19 @@ export function InsuranceShop({
   const [priceRange, setPriceRange] = useState({ min: 0, max: 1000000 })
   const [coverageRange, setCoverageRange] = useState({ min: 0, max: 100000000 })
   const [minRating, setMinRating] = useState(0)
+
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState({
+    type: true,
+    companies: true,
+    rating: true,
+    price: false,
+    coverage: false,
+  })
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))
+  }
 
   // Initialize filter ranges from props
   useEffect(() => {
@@ -258,7 +271,7 @@ export function InsuranceShop({
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               {/* Sidebar Filters */}
-              <aside className={`lg:block ${showFilters ? 'block' : 'hidden'} lg:col-span-1`}>
+              <aside className={`lg:block ${showFilters ? 'block' : 'hidden'} lg:col-span-1 transition-all duration-300`}>
                 <Card className="sticky top-20">
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -270,60 +283,95 @@ export function InsuranceShop({
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-4">
                     {/* Subcategories */}
                     {showSubcategories && filterOptions.subcategories && (
-                      <div>
-                        <h3 className="font-semibold mb-3">Type</h3>
-                        <div className="space-y-2">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name="subcategory"
-                              checked={selectedSubcategory === 'all'}
-                              onChange={() => setSelectedSubcategory('all')}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm">All Types</span>
-                          </label>
-                          {filterOptions.subcategories.map(sub => (
-                            <label key={sub} className="flex items-center gap-2 cursor-pointer">
+                      <div className="border-b pb-4">
+                        <button
+                          onClick={() => toggleSection('type')}
+                          className="flex items-center justify-between w-full text-left mb-3 hover:text-primary transition-colors"
+                        >
+                          <h3 className="font-semibold">Type</h3>
+                          {expandedSections.type ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </button>
+                        {expandedSections.type && (
+                          <div className="space-y-2 animate-in slide-in-from-top-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="radio"
                                 name="subcategory"
-                                checked={selectedSubcategory === sub}
-                                onChange={() => setSelectedSubcategory(sub)}
+                                checked={selectedSubcategory === 'all'}
+                                onChange={() => setSelectedSubcategory('all')}
                                 className="w-4 h-4"
                               />
-                              <span className="text-sm">{sub}</span>
+                              <span className="text-sm">All Types</span>
                             </label>
-                          ))}
-                        </div>
+                            {filterOptions.subcategories.map(sub => (
+                              <label key={sub} className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="subcategory"
+                                  checked={selectedSubcategory === sub}
+                                  onChange={() => setSelectedSubcategory(sub)}
+                                  className="w-4 h-4"
+                                />
+                                <span className="text-sm">{sub}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 
                     {/* Companies */}
-                    <div>
-                      <h3 className="font-semibold mb-3">Insurance Companies</h3>
-                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                        {filterOptions.companies.map(company => (
-                          <label key={company} className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={selectedCompanies.includes(company)}
-                              onChange={() => toggleCompany(company)}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm">{company}</span>
-                          </label>
-                        ))}
-                      </div>
+                    <div className="border-b pb-4">
+                      <button
+                        onClick={() => toggleSection('companies')}
+                        className="flex items-center justify-between w-full text-left mb-3 hover:text-primary transition-colors"
+                      >
+                        <h3 className="font-semibold">Insurance Companies</h3>
+                        {expandedSections.companies ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </button>
+                      {expandedSections.companies && (
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto animate-in slide-in-from-top-2">
+                          {filterOptions.companies.map(company => (
+                            <label key={company} className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selectedCompanies.includes(company)}
+                                onChange={() => toggleCompany(company)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm">{company}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Rating Filter */}
-                    <div>
-                      <h3 className="font-semibold mb-3">Minimum Rating</h3>
-                      <div className="space-y-2">
+                    <div className="border-b pb-4">
+                      <button
+                        onClick={() => toggleSection('rating')}
+                        className="flex items-center justify-between w-full text-left mb-3 hover:text-primary transition-colors"
+                      >
+                        <h3 className="font-semibold">Minimum Rating</h3>
+                        {expandedSections.rating ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </button>
+                      {expandedSections.rating && (
+                        <div className="space-y-2 animate-in slide-in-from-top-2">
                         {[4.5, 4.0, 3.5, 3.0].map(rating => (
                           <label key={rating} className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -349,34 +397,47 @@ export function InsuranceShop({
                           />
                           <span className="text-sm">All Ratings</span>
                         </label>
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Price Range */}
-                    <div>
-                      <h3 className="font-semibold mb-3">Monthly Premium Range</h3>
-                      <div className="space-y-3">
-                        <div className="flex gap-2 items-center">
-                          <Input
-                            type="number"
-                            placeholder="Min"
-                            value={priceRange.min || ''}
-                            onChange={(e) => setPriceRange(prev => ({ ...prev, min: Number(e.target.value) }))}
-                            className="h-9"
-                          />
-                          <span>-</span>
-                          <Input
-                            type="number"
-                            placeholder="Max"
-                            value={priceRange.max || ''}
-                            onChange={(e) => setPriceRange(prev => ({ ...prev, max: Number(e.target.value) }))}
-                            className="h-9"
-                          />
+                    <div className="border-b pb-4">
+                      <button
+                        onClick={() => toggleSection('price')}
+                        className="flex items-center justify-between w-full text-left mb-3 hover:text-primary transition-colors"
+                      >
+                        <h3 className="font-semibold">Monthly Premium Range</h3>
+                        {expandedSections.price ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </button>
+                      {expandedSections.price && (
+                        <div className="space-y-3 animate-in slide-in-from-top-2">
+                          <div className="flex gap-2 items-center">
+                            <Input
+                              type="number"
+                              placeholder="Min"
+                              value={priceRange.min || ''}
+                              onChange={(e) => setPriceRange(prev => ({ ...prev, min: Number(e.target.value) }))}
+                              className="h-9"
+                            />
+                            <span>-</span>
+                            <Input
+                              type="number"
+                              placeholder="Max"
+                              value={priceRange.max || ''}
+                              onChange={(e) => setPriceRange(prev => ({ ...prev, max: Number(e.target.value) }))}
+                              className="h-9"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            KES {priceRange.min.toLocaleString()} - {priceRange.max.toLocaleString()}
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          KES {priceRange.min.toLocaleString()} - {priceRange.max.toLocaleString()}
-                        </p>
-                      </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
