@@ -54,21 +54,23 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {[
-              { icon: Car, name: 'Motor', desc: 'Comprehensive vehicle coverage' },
-              { icon: Heart, name: 'Medical', desc: 'Health insurance plans' },
-              { icon: Users, name: 'Life', desc: 'Life insurance protection' },
-              { icon: HomeIcon, name: 'Home', desc: 'Property insurance' },
-              { icon: Plane, name: 'Travel', desc: 'Travel protection' },
+              { icon: Car, name: 'Motor', desc: 'Comprehensive vehicle coverage', href: '/policies/motor' },
+              { icon: Heart, name: 'Medical', desc: 'Health insurance plans', href: '/policies/medical' },
+              { icon: Users, name: 'Life', desc: 'Life insurance protection', href: '/policies/life' },
+              { icon: HomeIcon, name: 'Home', desc: 'Property insurance', href: '/policies/home' },
+              { icon: Plane, name: 'Travel', desc: 'Travel protection', href: '/policies/travel' },
             ].map((category) => (
-              <Card key={category.name} className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader className="text-center">
-                  <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <category.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle>{category.name}</CardTitle>
-                  <CardDescription>{category.desc}</CardDescription>
-                </CardHeader>
-              </Card>
+              <Link key={category.name} href={category.href}>
+                <Card className="hover:shadow-lg transition-all hover:scale-105 cursor-pointer h-full">
+                  <CardHeader className="text-center">
+                    <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <category.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <CardTitle>{category.name}</CardTitle>
+                    <CardDescription>{category.desc}</CardDescription>
+                  </CardHeader>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
