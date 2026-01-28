@@ -1,12 +1,13 @@
 'use client'
 
-import { use } from 'react'
+import { use, useEffect, useState } from 'react'
 import { InsuranceShop } from '@/components/shop/InsuranceShop'
 import {
   getProductsByCategory,
   getUniqueCompanies,
   getSubcategoriesByCategory,
   getCategoryInfo,
+  type InsuranceProduct,
 } from '@/data/insuranceProducts'
 
 interface CategoryPageProps {
@@ -17,13 +18,23 @@ export default function CategoryPage({ params }: CategoryPageProps) {
   const resolvedParams = use(params)
   const category = resolvedParams.category
 
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
+
   // Get products and filter options
   const products = getProductsByCategory(category)
   const subcategories = getSubcategoriesByCategory(category)
   const companies = getUniqueCompanies()
   const info = getCategoryInfo(category)
 
-  // Calculate price and coverage ranges
+  // Calculate price and coverage ranges safely
   const premiums = products.map(p => p.premium)
   const coverages = products.map(p => p.coverage)
 
