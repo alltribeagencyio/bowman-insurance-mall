@@ -27,18 +27,18 @@ export default function CompanyPage({ params }: CompanyPageProps) {
   const allCompanies = getUniqueCompanies()
 
   // Calculate price and coverage ranges
-  const premiums = products.length > 0 ? products.map(p => p.premium) : [0]
-  const coverages = products.length > 0 ? products.map(p => p.coverage) : [0]
+  const premiums = products.map(p => p.premium)
+  const coverages = products.map(p => p.coverage)
 
   const filterOptions = {
     companies: allCompanies,
     priceRange: {
-      min: Math.min(...premiums, 0),
-      max: Math.max(...premiums, 1000000),
+      min: premiums.length > 0 ? Math.min(...premiums) : 0,
+      max: premiums.length > 0 ? Math.max(...premiums) : 1000000,
     },
     coverageRange: {
-      min: Math.min(...coverages, 0),
-      max: Math.max(...coverages, 100000000),
+      min: coverages.length > 0 ? Math.min(...coverages) : 0,
+      max: coverages.length > 0 ? Math.max(...coverages) : 100000000,
     },
   }
 

@@ -31,12 +31,12 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     companies,
     subcategories: subcategories.length > 0 ? subcategories : undefined,
     priceRange: {
-      min: Math.min(...premiums, 0),
-      max: Math.max(...premiums, 1000000),
+      min: premiums.length > 0 ? Math.min(...premiums) : 0,
+      max: premiums.length > 0 ? Math.max(...premiums) : 1000000,
     },
     coverageRange: {
-      min: Math.min(...coverages, 0),
-      max: Math.max(...coverages, 100000000),
+      min: coverages.length > 0 ? Math.min(...coverages) : 0,
+      max: coverages.length > 0 ? Math.max(...coverages) : 100000000,
     },
   }
 

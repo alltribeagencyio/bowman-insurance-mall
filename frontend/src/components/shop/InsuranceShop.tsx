@@ -50,8 +50,14 @@ export function InsuranceShop({
   // Filter states
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([])
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all')
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 1000000 })
-  const [coverageRange, setCoverageRange] = useState({ min: 0, max: 100000000 })
+  const [priceRange, setPriceRange] = useState({
+    min: filterOptions.priceRange.min,
+    max: filterOptions.priceRange.max
+  })
+  const [coverageRange, setCoverageRange] = useState({
+    min: filterOptions.coverageRange.min,
+    max: filterOptions.coverageRange.max
+  })
   const [minRating, setMinRating] = useState(0)
 
   // Apply filters
@@ -115,8 +121,8 @@ export function InsuranceShop({
   const clearFilters = () => {
     setSelectedCompanies([])
     setSelectedSubcategory('all')
-    setPriceRange({ min: 0, max: 1000000 })
-    setCoverageRange({ min: 0, max: 100000000 })
+    setPriceRange({ min: filterOptions.priceRange.min, max: filterOptions.priceRange.max })
+    setCoverageRange({ min: filterOptions.coverageRange.min, max: filterOptions.coverageRange.max })
     setMinRating(0)
     setSearchQuery('')
   }
