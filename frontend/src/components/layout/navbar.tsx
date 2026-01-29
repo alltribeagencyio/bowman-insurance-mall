@@ -333,10 +333,6 @@ export function Navbar() {
                     {user?.first_name || 'Dashboard'}
                   </Link>
                 </Button>
-                <Button variant="ghost" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
               </>
             ) : (
               <>
@@ -408,19 +404,13 @@ export function Navbar() {
             {/* User Actions */}
             <div className="border-t pt-4">
               {isAuthenticated ? (
-                <>
-                  <Link
-                    href="/dashboard"
-                    className="block py-3 px-3 text-sm font-medium hover:bg-muted rounded-lg"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Dashboard
-                  </Link>
-                  <Button variant="outline" onClick={handleLogout} className="w-full mt-2">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </Button>
-                </>
+                <Link
+                  href="/dashboard"
+                  className="block py-3 px-3 text-sm font-medium hover:bg-muted rounded-lg"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
               ) : (
                 <div className="flex flex-col space-y-2">
                   <Button variant="outline" asChild className="w-full">
