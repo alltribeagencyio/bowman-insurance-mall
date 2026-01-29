@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
 import {
   Shield,
   Search,
@@ -158,6 +159,8 @@ function MyPoliciesContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
 
   const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
@@ -197,7 +200,7 @@ function MyPoliciesContent() {
     // TODO: Navigate to renewal flow
   }
 
-  const filteredPolicies = policies.filter(policy => {
+  const allFilteredPolicies = policies.filter(policy => {
     const matchesSearch =
       searchQuery === '' ||
       policy.policy_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -209,6 +212,17 @@ function MyPoliciesContent() {
 
     return matchesSearch && matchesStatus
   })
+
+  // Calculate pagination
+  const totalPages = Math.ceil(allFilteredPolicies.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const filteredPolicies = allFilteredPolicies.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, statusFilter])
 
   const stats = {
     total: policies.length,
@@ -329,7 +343,7 @@ function MyPoliciesContent() {
       </Card>
 
       {/* Policies List */}
-      {filteredPolicies.length === 0 ? (
+      {allFilteredPolicies.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Shield className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
@@ -345,117 +359,105 @@ function MyPoliciesContent() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {filteredPolicies.map((policy) => (
-            <Card key={policy.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-start gap-4 mb-3">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Shield className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="flex-1">
+        <>
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {filteredPolicies.map((policy) => (
+                  <div
+                    key={policy.id}
+                    className="p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      {/* Left Section */}
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-lg">
+                          {getStatusIcon(policy.status)}
+                          <h3 className="font-semibold text-sm truncate">
                             {policy.policy_type.name}
                           </h3>
-                          {getStatusIcon(policy.status)}
-                          <Badge variant={getStatusBadgeVariant(policy.status)}>
+                          <Badge variant={getStatusBadgeVariant(policy.status)} className="flex-shrink-0">
                             {policy.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-1">
-                          Policy No: {policy.policy_number}
-                        </p>
                         <p className="text-sm text-muted-foreground">
-                          Insurer: {policy.insurance_company.name}
+                          {policy.policy_number} • {policy.insurance_company.name}
                         </p>
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 ml-16 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Premium</p>
-                        <p className="font-medium">
-                          KES {policy.premium_amount.toLocaleString()}
-                        </p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {policy.payment_frequency}
-                        </p>
+                      {/* Middle Section - Key Info */}
+                      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Premium: </span>
+                          <span className="font-medium">KES {policy.premium_amount.toLocaleString()}</span>
+                          <span className="text-muted-foreground text-xs"> /{policy.payment_frequency}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Expires: </span>
+                          <span className="font-medium">{new Date(policy.end_date).toLocaleDateString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Days left: </span>
+                          <span className="font-medium">
+                            {Math.max(0, Math.floor(
+                              (new Date(policy.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                            ))}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground">Start Date</p>
-                        <p className="font-medium">
-                          {new Date(policy.start_date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">End Date</p>
-                        <p className="font-medium">
-                          {new Date(policy.end_date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Days Remaining</p>
-                        <p className="font-medium">
-                          {Math.max(0, Math.floor(
-                            (new Date(policy.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-                          ))} days
-                        </p>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="flex flex-col gap-2 lg:items-end">
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/policies/details/${policy.id}`}>
-                          <FileText className="w-4 h-4 mr-2" />
-                          View Details
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownloadCertificate(policy.id)}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Certificate
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {policy.status === 'expired' && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleRenewPolicy(policy.id)}
-                        >
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Renew
+                      {/* Right Section - Actions */}
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/policies/details/${policy.id}`}>
+                            <FileText className="w-4 h-4 mr-1" />
+                            Details
+                          </Link>
                         </Button>
-                      )}
-                      {policy.status === 'active' && (
-                        <>
-                          <Button size="sm" variant="outline" asChild>
-                            <Link href={`/claims/new?policy=${policy.id}`}>
-                              File Claim
-                            </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadCertificate(policy.id)}
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          Certificate
+                        </Button>
+                        {policy.status === 'expired' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleRenewPolicy(policy.id)}
+                          >
+                            <RefreshCw className="w-4 h-4 mr-1" />
+                            Renew
                           </Button>
+                        )}
+                        {policy.status === 'active' && (
                           <Button size="sm" asChild>
                             <Link href={`/payment/${policy.id}`}>
-                              <DollarSign className="w-4 h-4 mr-2" />
                               Pay
                             </Link>
                           </Button>
-                        </>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={allFilteredPolicies.length}
+              itemsPerPage={itemsPerPage}
+              itemName="policies"
+            />
+          )}
+        </>
       )}
     </div>
   )

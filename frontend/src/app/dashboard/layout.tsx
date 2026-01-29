@@ -41,20 +41,27 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
+  // Primary actions - most frequently accessed
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Policies', href: '/dashboard/my-policies', icon: Shield },
-  { name: 'Claims', href: '/dashboard/claims', icon: FileText },
-  { name: 'Assets', href: '/dashboard/assets', icon: CreditCard },
+  { name: 'Shop Insurance', href: '/shop', icon: ShoppingBag },
+
+  // Financial management - grouped together
   {
     name: 'Payments',
     icon: DollarSign,
     children: [
-      { name: 'All Payments', href: '/dashboard/payments', icon: Receipt },
       { name: 'Pending Payments', href: '/dashboard/pending-payments', icon: Clock, badge: 2 },
+      { name: 'All Payments', href: '/dashboard/payments', icon: Receipt },
     ]
   },
-  { name: 'Shop Insurance', href: '/shop', icon: ShoppingBag },
+
+  // Claims and assets - service-related
+  { name: 'Claims', href: '/dashboard/claims', icon: FileText },
+  { name: 'Assets', href: '/dashboard/assets', icon: CreditCard },
   { name: 'Documents', href: '/dashboard/documents', icon: Download },
+
+  // Support and account - secondary actions
   { name: 'Support', href: '/dashboard/support', icon: LifeBuoy },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
 ]

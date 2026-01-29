@@ -4,11 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, FileText, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Plus, FileText, Clock, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function ClaimsPage() {
-  // Mock claims data
-  const [claims] = useState([
+  // Mock claims data - expanded for pagination demo
+  const allClaims = [
     {
       id: '1',
       claimNumber: 'CLM-2024-001',
@@ -42,7 +42,38 @@ export default function ClaimsPage() {
       amount: 80000,
       description: 'Water damage to property',
     },
-  ])
+    {
+      id: '4',
+      claimNumber: 'CLM-2024-004',
+      policyName: 'Travel Insurance',
+      policyNumber: 'POL-2024-004',
+      type: 'Travel',
+      dateSubmitted: '2024-01-12',
+      status: 'approved',
+      amount: 25000,
+      description: 'Lost luggage claim',
+    },
+    {
+      id: '5',
+      claimNumber: 'CLM-2024-005',
+      policyName: 'Business Cover',
+      policyNumber: 'POL-2024-005',
+      type: 'Business',
+      dateSubmitted: '2024-01-18',
+      status: 'processing',
+      amount: 120000,
+      description: 'Equipment damage',
+    },
+  ]
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
+
+  // Calculate pagination
+  const totalPages = Math.ceil(allClaims.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const claims = allClaims.slice(startIndex, endIndex)
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -109,54 +140,102 @@ export default function ClaimsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {claims.map((claim) => (
-              <Card key={claim.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-lg">{claim.claimNumber}</CardTitle>
-                        {getStatusBadge(claim.status)}
+          <>
+            <Card>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {claims.map((claim) => (
+                    <div
+                      key={claim.id}
+                      className="p-4 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        {/* Left Section */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1">
+                            <h3 className="font-semibold text-sm">{claim.claimNumber}</h3>
+                            {getStatusBadge(claim.status)}
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{claim.policyName}</p>
+                        </div>
+
+                        {/* Middle Section - Info Grid */}
+                        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Policy: </span>
+                            <span className="font-medium">{claim.policyNumber}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Type: </span>
+                            <span className="font-medium">{claim.type}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Date: </span>
+                            <span className="font-medium">{claim.dateSubmitted}</span>
+                          </div>
+                        </div>
+
+                        {/* Right Section - Amount and Action */}
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <div className="font-bold text-lg">
+                              KES {claim.amount.toLocaleString()}
+                            </div>
+                            <p className="text-xs text-muted-foreground">Claim Amount</p>
+                          </div>
+                          <Button variant="outline" size="sm">
+                            View
+                          </Button>
+                        </div>
                       </div>
-                      <CardDescription className="text-base">
-                        {claim.policyName}
-                      </CardDescription>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">
-                        KES {claim.amount.toLocaleString()}
-                      </div>
-                      <p className="text-sm text-muted-foreground">Claim Amount</p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Policy Number</p>
-                      <p className="font-medium">{claim.policyNumber}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Claim Type</p>
-                      <p className="font-medium">{claim.type}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Date Submitted</p>
-                      <p className="font-medium">{claim.dateSubmitted}</p>
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <p className="text-sm text-muted-foreground mb-1">Description</p>
-                    <p className="text-sm">{claim.description}</p>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    View Details
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {Math.min(endIndex, allClaims.length)} of {allClaims.length} claims
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
                   </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
