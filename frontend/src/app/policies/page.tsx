@@ -276,7 +276,11 @@ export default function PoliciesPage() {
                       View Details
                     </Link>
                   </Button>
-                  <Button className="flex-1">Get Quote</Button>
+                  <Button className="flex-1" asChild>
+                    <Link href={`/purchase/${policy.id}`}>
+                      Buy Cover
+                    </Link>
+                  </Button>
                 </CardFooter>
               </Card>
             ))}

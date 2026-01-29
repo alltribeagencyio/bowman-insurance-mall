@@ -526,7 +526,11 @@ export function InsuranceShop({
                               View Details
                             </Link>
                           </Button>
-                          <Button className="flex-1 group-hover:bg-primary/90">Get Quote</Button>
+                          <Button className="flex-1 group-hover:bg-primary/90" asChild>
+                            <Link href={`/purchase/${product.id}`}>
+                              Buy Cover
+                            </Link>
+                          </Button>
                         </CardFooter>
                       </Card>
                     ))}
