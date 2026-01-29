@@ -137,13 +137,18 @@ export function Navbar() {
     )}>
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href="/">
-            <span className="text-2xl font-bold text-primary">Bowman</span>
-          </Link>
+          {/* Logo - Only show for non-authenticated users */}
+          {!isAuthenticated && (
+            <Link href="/">
+              <span className="text-2xl font-bold text-primary">Bowman</span>
+            </Link>
+          )}
 
           {/* Desktop Navigation - Categories */}
-          <div className="hidden lg:flex items-center space-x-1 justify-center flex-1">
+          <div className={cn(
+            "hidden lg:flex items-center space-x-1",
+            isAuthenticated ? "flex-1" : "justify-center flex-1"
+          )}>
             {/* Mall Link - All Products */}
             <Link
               href="/shop"
