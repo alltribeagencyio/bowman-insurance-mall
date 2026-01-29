@@ -179,7 +179,10 @@ export function Navbar() {
                   </Link>
 
                   {/* Mega Menu Dropdown - Center aligned with pointer-events to keep menu open */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[600px] bg-background border rounded-lg shadow-xl p-6 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none group-hover:pointer-events-auto z-50">
+                  <div className={cn(
+                    "absolute top-full mt-2 w-[600px] bg-background border rounded-lg shadow-xl p-6 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none group-hover:pointer-events-auto z-50",
+                    "left-1/2 -translate-x-1/2"
+                  )}>
                     <div className="grid grid-cols-2 gap-6">
                         {/* Plans Column */}
                         <div>

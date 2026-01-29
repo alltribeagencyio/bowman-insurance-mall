@@ -55,11 +55,17 @@
   }
 
   html {
-    font-size: 95%; /* Reduces all rem-based sizes by 5% */
+    font-size: 90%; /* Reduces all rem-based sizes to 90% for less cluttered feel */
   }
 
   body {
     @apply bg-background text-foreground;
     line-height: 1.5; /* Slightly tighter line height */
+  }
+
+  /* Keep navbar and sidebar at normal size */
+  nav,
+  aside {
+    font-size: 1.111rem; /* Compensates for 90% to bring back to ~100% */
   }
 }

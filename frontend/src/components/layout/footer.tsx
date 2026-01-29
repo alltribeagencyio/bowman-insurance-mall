@@ -1,9 +1,26 @@
+'use client'
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react'
+import { useAuth } from '@/lib/auth/auth-context'
+import { useSidebar } from '@/contexts/sidebar-context'
+import { cn } from '@/lib/utils'
 
 export function Footer() {
+  const { isAuthenticated } = useAuth()
+  const { sidebarCollapsed } = useSidebar()
+  const pathname = usePathname()
+
+  // Check if we're on a dashboard page (where sidebar is visible)
+  const isOnDashboardPage = pathname?.startsWith('/dashboard')
+
   return (
-    <footer className="border-t bg-muted/50">
+    <footer className={cn(
+      "border-t bg-muted/50 transition-all duration-300",
+      isAuthenticated && isOnDashboardPage && !sidebarCollapsed && "lg:pl-64",
+      isAuthenticated && isOnDashboardPage && sidebarCollapsed && "lg:pl-20"
+    )}>
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
