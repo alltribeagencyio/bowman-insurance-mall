@@ -53,7 +53,13 @@
   * {
     @apply border-border;
   }
+
+  html {
+    font-size: 95%; /* Reduces all rem-based sizes by 5% */
+  }
+
   body {
     @apply bg-background text-foreground;
+    line-height: 1.5; /* Slightly tighter line height */
   }
 }

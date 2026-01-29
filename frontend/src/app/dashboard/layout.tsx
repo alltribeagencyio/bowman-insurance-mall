@@ -30,17 +30,24 @@ import { cn } from '@/lib/utils'
 
 interface NavItem {
   name: string
-  href: string
+  href?: string
   icon: React.ComponentType<{ className?: string }>
   badge?: number
+  children?: NavItem[]
 }
 
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Policies', href: '/dashboard/my-policies', icon: Shield },
   { name: 'Assets', href: '/dashboard/assets', icon: CreditCard },
-  { name: 'Payments', href: '/dashboard/payments', icon: DollarSign },
-  { name: 'Pending Payments', href: '/dashboard/pending-payments', icon: Clock, badge: 2 },
+  {
+    name: 'Payments',
+    icon: DollarSign,
+    children: [
+      { name: 'All Payments', href: '/dashboard/payments', icon: DollarSign },
+      { name: 'Pending Payments', href: '/dashboard/pending-payments', icon: Clock, badge: 2 },
+    ]
+  },
   { name: 'Documents', href: '/dashboard/documents', icon: Download },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
 ]
@@ -51,9 +58,18 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [expandedItems, setExpandedItems] = useState<string[]>(['Payments'])
 
   const handleLogout = async () => {
     await logout()
+  }
+
+  const toggleExpanded = (itemName: string) => {
+    setExpandedItems(prev =>
+      prev.includes(itemName)
+        ? prev.filter(name => name !== itemName)
+        : [...prev, itemName]
+    )
   }
 
   return (
@@ -140,44 +156,117 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           sidebarCollapsed ? "overflow-visible" : "overflow-y-auto"
         )}>
           {navigation.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
+            // Check if any child is active for parent items
+            const hasActiveChild = item.children?.some(child =>
+              pathname === child.href || (child.href && child.href !== '/dashboard' && pathname.startsWith(child.href + '/'))
+            )
+            const isExpanded = expandedItems.includes(item.name)
+
+            // For items without children (regular nav items)
+            if (!item.children) {
+              const isActive = pathname === item.href || (item.href && item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href!}
+                  title={sidebarCollapsed ? item.name : undefined}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative group',
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
+                    sidebarCollapsed && 'justify-center'
+                  )}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  {!sidebarCollapsed && (
+                    <>
+                      <span className="flex-1">{item.name}</span>
+                      {item.badge && (
+                        <Badge variant="destructive" className="ml-auto">
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </>
+                  )}
+                  {sidebarCollapsed && item.badge && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
+                      {item.badge}
+                    </span>
+                  )}
+                  {/* Tooltip on hover for collapsed state */}
+                  {sidebarCollapsed && (
+                    <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
+                      {item.name}
+                    </div>
+                  )}
+                </Link>
+              )
+            }
+
+            // For items with children (expandable parent items)
             return (
-              <Link
-                key={item.name}
-                href={item.href}
-                title={sidebarCollapsed ? item.name : undefined}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative group',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
-                  sidebarCollapsed && 'justify-center'
-                )}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!sidebarCollapsed && (
-                  <>
-                    <span className="flex-1">{item.name}</span>
-                    {item.badge && (
-                      <Badge variant="destructive" className="ml-auto">
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </>
-                )}
-                {sidebarCollapsed && item.badge && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
-                    {item.badge}
-                  </span>
-                )}
-                {/* Tooltip on hover for collapsed state */}
-                {sidebarCollapsed && (
-                  <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
-                    {item.name}
+              <div key={item.name}>
+                <button
+                  onClick={() => toggleExpanded(item.name)}
+                  title={sidebarCollapsed ? item.name : undefined}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative group',
+                    hasActiveChild
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
+                    sidebarCollapsed && 'justify-center'
+                  )}
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  {!sidebarCollapsed && (
+                    <>
+                      <span className="flex-1 text-left">{item.name}</span>
+                      <ChevronDown className={cn(
+                        "h-4 w-4 transition-transform",
+                        isExpanded && "transform rotate-180"
+                      )} />
+                    </>
+                  )}
+                  {/* Tooltip on hover for collapsed state */}
+                  {sidebarCollapsed && (
+                    <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity z-50">
+                      {item.name}
+                    </div>
+                  )}
+                </button>
+
+                {/* Submenu items */}
+                {isExpanded && !sidebarCollapsed && (
+                  <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-2">
+                    {item.children.map((child) => {
+                      const isChildActive = pathname === child.href || (child.href && child.href !== '/dashboard' && pathname.startsWith(child.href + '/'))
+                      return (
+                        <Link
+                          key={child.name}
+                          href={child.href!}
+                          className={cn(
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                            isChildActive
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          )}
+                          onClick={() => setSidebarOpen(false)}
+                        >
+                          <child.icon className="h-4 w-4 flex-shrink-0" />
+                          <span className="flex-1">{child.name}</span>
+                          {child.badge && (
+                            <Badge variant="destructive" className="ml-auto">
+                              {child.badge}
+                            </Badge>
+                          )}
+                        </Link>
+                      )
+                    })}
                   </div>
                 )}
-              </Link>
+              </div>
             )
           })}
         </nav>
