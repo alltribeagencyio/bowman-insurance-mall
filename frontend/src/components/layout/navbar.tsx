@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Menu, X, ShoppingCart, User, LogOut, Car, Heart, Users, Home, Plane, Building2, Search } from 'lucide-react'
+import { Menu, X, ShoppingCart, User, LogOut, Car, Heart, Users, Home, Plane, Building2, Search, ArrowLeftRight } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useSidebar } from '@/contexts/sidebar-context'
@@ -95,6 +96,10 @@ export function Navbar() {
   const searchRef = useRef<HTMLDivElement>(null)
   const { user, isAuthenticated, logout } = useAuth()
   const { sidebarCollapsed } = useSidebar()
+  const pathname = usePathname()
+
+  // Check if we're on a dashboard page (where sidebar is visible)
+  const isOnDashboardPage = pathname?.startsWith('/dashboard')
 
   // Close search when clicking outside
   useEffect(() => {
@@ -132,13 +137,13 @@ export function Navbar() {
   return (
     <nav className={cn(
       "border-b bg-background sticky top-0 z-50 backdrop-blur-sm bg-background/95 transition-all duration-300",
-      isAuthenticated && !sidebarCollapsed && "lg:pl-64",
-      isAuthenticated && sidebarCollapsed && "lg:pl-20"
+      isAuthenticated && isOnDashboardPage && !sidebarCollapsed && "lg:pl-64",
+      isAuthenticated && isOnDashboardPage && sidebarCollapsed && "lg:pl-20"
     )}>
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo - Only show for non-authenticated users */}
-          {!isAuthenticated && (
+          {/* Logo - Hide only when on dashboard pages where sidebar is visible */}
+          {!(isAuthenticated && isOnDashboardPage) && (
             <Link href="/">
               <span className="text-2xl font-bold text-primary">Bowman</span>
             </Link>
@@ -147,7 +152,7 @@ export function Navbar() {
           {/* Desktop Navigation - Categories */}
           <div className={cn(
             "hidden lg:flex items-center space-x-1",
-            isAuthenticated ? "flex-1" : "justify-center flex-1"
+            (isAuthenticated && isOnDashboardPage) ? "flex-1" : "justify-center flex-1"
           )}>
             {/* Mall Link - All Products */}
             <Link
@@ -156,6 +161,15 @@ export function Navbar() {
             >
               <ShoppingCart className="h-4 w-4" />
               Mall
+            </Link>
+
+            {/* Compare Policies Link */}
+            <Link
+              href="/policies/compare"
+              className="px-4 py-2 text-sm font-semibold hover:text-primary flex items-center gap-2 rounded-md hover:bg-muted transition-colors"
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+              Compare
             </Link>
 
             {insuranceCategories.map((category) => {
@@ -376,6 +390,23 @@ export function Navbar() {
                 <div className="font-bold">Insurance Mall</div>
                 <div className="text-xs text-muted-foreground">
                   Browse all products
+                </div>
+              </div>
+            </Link>
+
+            {/* Compare Policies Link */}
+            <Link
+              href="/policies/compare"
+              className="flex items-center gap-3 px-3 py-3 text-sm font-medium bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors mx-2"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <div className="p-2 rounded-lg bg-primary">
+                <ArrowLeftRight className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="flex-1">
+                <div className="font-bold">Compare Policies</div>
+                <div className="text-xs text-muted-foreground">
+                  Compare across companies
                 </div>
               </div>
             </Link>

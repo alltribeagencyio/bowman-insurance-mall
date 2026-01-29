@@ -265,8 +265,10 @@ export default function ComparePoliciesPage() {
                   {/* Actions */}
                   <Card className="bg-muted/50">
                     <CardContent className="py-4 space-y-2">
-                      <Button className="w-full" size="sm">
-                        Get Quote
+                      <Button className="w-full" size="sm" asChild>
+                        <Link href={`/purchase/${policy.id}`}>
+                          Buy Cover
+                        </Link>
                       </Button>
                       <Button variant="outline" className="w-full" size="sm" asChild>
                         <Link href={`/policies/details/${policy.id}`}>
