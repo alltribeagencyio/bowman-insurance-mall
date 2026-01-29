@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Menu, X, ShoppingCart, User, LogOut, Car, Heart, Users, Home, Plane, Building2, Search } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useSidebar } from '@/contexts/sidebar-context'
 import { ALL_PRODUCTS } from '@/data/insuranceProducts'
+import { cn } from '@/lib/utils'
 
 // Insurance categories with their plans and companies
 const insuranceCategories = [
@@ -92,6 +94,7 @@ export function Navbar() {
   const [searchQuery, setSearchQuery] = useState('')
   const searchRef = useRef<HTMLDivElement>(null)
   const { user, isAuthenticated, logout } = useAuth()
+  const { sidebarCollapsed } = useSidebar()
 
   // Close search when clicking outside
   useEffect(() => {
@@ -127,7 +130,11 @@ export function Navbar() {
   }
 
   return (
-    <nav className="border-b bg-background sticky top-0 z-50 backdrop-blur-sm bg-background/95">
+    <nav className={cn(
+      "border-b bg-background sticky top-0 z-50 backdrop-blur-sm bg-background/95 transition-all duration-300",
+      isAuthenticated && !sidebarCollapsed && "lg:pl-64",
+      isAuthenticated && sidebarCollapsed && "lg:pl-20"
+    )}>
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}

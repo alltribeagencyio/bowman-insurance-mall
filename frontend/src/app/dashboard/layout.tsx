@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { ProtectedRoute } from '@/components/auth/protected-route'
+import { useSidebar } from '@/contexts/sidebar-context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -42,7 +43,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Policies', href: '/dashboard/my-policies', icon: Shield },
-  { name: 'Claims', href: '/claims', icon: FileText },
+  { name: 'Claims', href: '/dashboard/claims', icon: FileText },
   { name: 'Assets', href: '/dashboard/assets', icon: CreditCard },
   {
     name: 'Payments',
@@ -61,10 +62,10 @@ const navigation: NavItem[] = [
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
   const pathname = usePathname()
+  const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Payments'])
+  const [expandedItems, setExpandedItems] = useState<string[]>([])
 
   const handleLogout = async () => {
     await logout()
@@ -135,30 +136,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        {!sidebarCollapsed && (
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <Link href="/shop">
-              <Button className="w-full" size="sm">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Buy Insurance
-              </Button>
-            </Link>
-          </div>
-        )}
-        {sidebarCollapsed && (
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-center">
-            <Link href="/shop">
-              <Button size="sm" className="w-10 h-10 p-0" title="Buy Insurance">
-                <CreditCard className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        )}
 
         {/* Navigation */}
         <nav className={cn(
-          "flex-1 px-4 py-6 space-y-1 h-[calc(100vh-20rem)]",
+          "flex-1 px-4 py-6 space-y-1 h-[calc(100vh-16rem)]",
           sidebarCollapsed ? "overflow-visible" : "overflow-y-auto"
         )}>
           {navigation.map((item) => {
