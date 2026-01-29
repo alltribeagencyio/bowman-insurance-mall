@@ -24,7 +24,10 @@ import {
   ChevronRight,
   CreditCard,
   Clock,
-  Home
+  Home,
+  ShoppingBag,
+  Receipt,
+  LifeBuoy
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -39,16 +42,19 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Policies', href: '/dashboard/my-policies', icon: Shield },
+  { name: 'Claims', href: '/claims', icon: FileText },
   { name: 'Assets', href: '/dashboard/assets', icon: CreditCard },
   {
     name: 'Payments',
     icon: DollarSign,
     children: [
-      { name: 'All Payments', href: '/dashboard/payments', icon: DollarSign },
+      { name: 'All Payments', href: '/dashboard/payments', icon: Receipt },
       { name: 'Pending Payments', href: '/dashboard/pending-payments', icon: Clock, badge: 2 },
     ]
   },
+  { name: 'Shop Insurance', href: '/shop', icon: ShoppingBag },
   { name: 'Documents', href: '/dashboard/documents', icon: Download },
+  { name: 'Support', href: '/support', icon: LifeBuoy },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
 ]
 
