@@ -894,9 +894,18 @@ export default function PolicyDetailPage() {
                     </div>
 
                     <div className="space-y-2">
+                      {/* Buy Cover button - always shown for purchasing additional cover */}
+                      <Button className="w-full" size="lg" asChild>
+                        <Link href={`/purchase/${params.id}`}>
+                          <Shield className="h-4 w-4 mr-2" />
+                          Buy Cover
+                        </Link>
+                      </Button>
+
+                      {/* Policy-specific actions - only for owned policies */}
                       {ownedPolicyData.status === 'active' && (
                         <>
-                          <Button className="w-full" asChild>
+                          <Button variant="outline" className="w-full" asChild>
                             <Link href={`/payment/${params.id}`}>
                               <DollarSign className="h-4 w-4 mr-2" />
                               Make Payment
@@ -918,7 +927,7 @@ export default function PolicyDetailPage() {
                       )}
                       <Button
                         variant="outline"
-                        className="w-full text-red-600 hover:text-red-700"
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
                         onClick={handleCancelPolicy}
                       >
                         <Ban className="h-4 w-4 mr-2" />
