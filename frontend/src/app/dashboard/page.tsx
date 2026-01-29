@@ -154,9 +154,9 @@ function DashboardContent() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div>
       {/* Welcome Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">
           Welcome back, {user?.first_name}!
         </h1>
@@ -166,7 +166,7 @@ function DashboardContent() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -228,9 +228,39 @@ function DashboardContent() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Quick Actions */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>Common tasks and shortcuts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button variant="outline" className="h-auto py-4 flex-col gap-2" asChild>
+              <Link href="/policies">
+                <Shield className="h-6 w-6" />
+                <span>Browse Policies</span>
+              </Link>
+            </Button>
+            <Button variant="outline" className="h-auto py-4 flex-col gap-2" asChild>
+              <Link href="/claims/new">
+                <FileText className="h-6 w-6" />
+                <span>File Claim</span>
+              </Link>
+            </Button>
+            <Button variant="outline" className="h-auto py-4 flex-col gap-2" asChild>
+              <Link href="/dashboard/documents">
+                <FileCheck className="h-6 w-6" />
+                <span>My Documents</span>
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Column */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-6">
           {/* Alerts Section */}
           {(data.payments.overdueCount > 0 || data.policies.expiringSoon > 0 || !user?.is_verified) && (
             <div className="space-y-4">
@@ -393,36 +423,6 @@ function DashboardContent() {
                     </div>
                   </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common tasks and shortcuts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-auto py-4 flex-col gap-2" asChild>
-                  <Link href="/policies">
-                    <Shield className="h-6 w-6" />
-                    <span>Browse Policies</span>
-                  </Link>
-                </Button>
-                <Button variant="outline" className="h-auto py-4 flex-col gap-2" asChild>
-                  <Link href="/claims/new">
-                    <FileText className="h-6 w-6" />
-                    <span>File Claim</span>
-                  </Link>
-                </Button>
-                <Button variant="outline" className="h-auto py-4 flex-col gap-2" asChild>
-                  <Link href="/dashboard/documents">
-                    <FileCheck className="h-6 w-6" />
-                    <span>My Documents</span>
-                  </Link>
-                </Button>
               </div>
             </CardContent>
           </Card>

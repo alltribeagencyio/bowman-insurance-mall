@@ -163,15 +163,6 @@ export function Navbar() {
               Mall
             </Link>
 
-            {/* Compare Policies Link */}
-            <Link
-              href="/policies/compare"
-              className="px-4 py-2 text-sm font-semibold hover:text-primary flex items-center gap-2 rounded-md hover:bg-muted transition-colors"
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-              Compare
-            </Link>
-
             {insuranceCategories.map((category) => {
               const Icon = category.icon
               return (
@@ -237,6 +228,15 @@ export function Navbar() {
                 </div>
               )
             })}
+
+            {/* Compare Policies Link */}
+            <Link
+              href="/policies/compare"
+              className="px-4 py-2 text-sm font-semibold hover:text-primary flex items-center gap-2 rounded-md hover:bg-muted transition-colors"
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+              Compare
+            </Link>
           </div>
 
           {/* Desktop Actions */}
