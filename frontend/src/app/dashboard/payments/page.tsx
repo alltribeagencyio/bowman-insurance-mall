@@ -114,9 +114,9 @@ function PaymentsContent() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div>
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Payment History</h1>
         <p className="text-muted-foreground">
           View all your payment transactions and download receipts
@@ -125,7 +125,7 @@ function PaymentsContent() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Payments</CardTitle>

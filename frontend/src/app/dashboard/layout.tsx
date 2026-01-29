@@ -55,7 +55,7 @@ const navigation: NavItem[] = [
   },
   { name: 'Shop Insurance', href: '/shop', icon: ShoppingBag },
   { name: 'Documents', href: '/dashboard/documents', icon: Download },
-  { name: 'Support', href: '/support', icon: LifeBuoy },
+  { name: 'Support', href: '/dashboard/support', icon: LifeBuoy },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
 ]
 

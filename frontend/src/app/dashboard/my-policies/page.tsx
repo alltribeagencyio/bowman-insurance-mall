@@ -223,9 +223,9 @@ function MyPoliciesContent() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div>
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">My Policies</h1>
           <p className="text-muted-foreground">
@@ -241,7 +241,7 @@ function MyPoliciesContent() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Policies</CardTitle>

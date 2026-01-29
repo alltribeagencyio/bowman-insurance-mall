@@ -75,7 +75,7 @@ export default function ClaimsPage() {
   return (
     <div>
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold mb-2">My Claims</h1>
           <p className="text-muted-foreground">
@@ -83,7 +83,7 @@ export default function ClaimsPage() {
           </p>
         </div>
         <Button size="lg" asChild>
-          <Link href="/claims/new">
+          <Link href="/dashboard/claims/new">
             <Plus className="h-5 w-5 mr-2" />
             File New Claim
           </Link>
@@ -101,7 +101,7 @@ export default function ClaimsPage() {
                 You haven't filed any insurance claims
               </p>
               <Button asChild>
-                <Link href="/claims/new">
+                <Link href="/dashboard/claims/new">
                   <Plus className="h-4 w-4 mr-2" />
                   File Your First Claim
                 </Link>

@@ -163,8 +163,14 @@ export function Navbar() {
               Mall
             </Link>
 
-            {insuranceCategories.map((category) => {
+            {insuranceCategories.map((category, index) => {
               const Icon = category.icon
+              // For Motor and Medical (first two categories), position mega menu to avoid sidebar obstruction
+              const isLeftCategory = index <= 1
+              const megaMenuPositioning = isLeftCategory && isOnDashboardPage
+                ? "left-0"
+                : "left-1/2 -translate-x-1/2"
+
               return (
                 <div
                   key={category.id}
@@ -181,7 +187,7 @@ export function Navbar() {
                   {/* Mega Menu Dropdown - Center aligned with pointer-events to keep menu open */}
                   <div className={cn(
                     "absolute top-full mt-2 w-[600px] bg-background border rounded-lg shadow-xl p-6 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none group-hover:pointer-events-auto z-50",
-                    "left-1/2 -translate-x-1/2"
+                    megaMenuPositioning
                   )}>
                     <div className="grid grid-cols-2 gap-6">
                         {/* Plans Column */}
