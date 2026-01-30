@@ -35,7 +35,9 @@ import {
   Target,
   Sparkles,
   Zap,
-  ArrowRight
+  ArrowRight,
+  Upload,
+  FileText
 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
@@ -370,6 +372,21 @@ function ProfileContent() {
                   </p>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="kra_pin">KRA PIN (Optional)</Label>
+                  <Input
+                    id="kra_pin"
+                    name="kra_pin"
+                    type="text"
+                    placeholder="A123456789K"
+                    maxLength={11}
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Kenya Revenue Authority Personal Identification Number
+                  </p>
+                </div>
+
                 <Button
                   type="submit"
                   disabled={isLoading}
@@ -379,6 +396,74 @@ function ProfileContent() {
                   {isLoading ? 'Saving...' : 'Save Changes'}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+
+          {/* Identity Documents */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Identity Documents
+              </CardTitle>
+              <CardDescription>
+                Upload your National ID or Passport for verification
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="idType">Document Type</Label>
+                  <select
+                    id="idType"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="national_id">National ID</option>
+                    <option value="passport">Passport</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="idNumber">ID/Passport Number</Label>
+                  <Input
+                    id="idNumber"
+                    type="text"
+                    placeholder="12345678"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="idDocument">Upload Document</Label>
+                  <div className="flex items-center gap-2">
+                    <Input id="idDocument" type="file" accept=".pdf,.jpg,.jpeg,.png" className="flex-1" />
+                    <Button type="button" variant="outline" size="sm">
+                      <Upload className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Upload clear copy of your National ID or Passport (PDF, JPG, or PNG, max 5MB)
+                  </p>
+                </div>
+
+                <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-3">
+                    <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-1">
+                        Document Security
+                      </h4>
+                      <p className="text-xs text-blue-800 dark:text-blue-200">
+                        Your documents are encrypted and stored securely. We only use them for identity verification and never share with third parties.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button className="w-full">
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Identity Documents
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

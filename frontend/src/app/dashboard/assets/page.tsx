@@ -17,7 +17,9 @@ import {
   Edit2,
   Trash2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  FileText
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -27,22 +29,28 @@ const mockVehicles = [
     id: '1',
     make: 'Toyota',
     model: 'Land Cruiser',
-    year: 2024,
+    yom: 2023,
     registration: 'KCE 123A',
+    chassisNumber: 'JTMHV05J504123456',
+    engineNumber: '1GR-FE-1234567',
     value: 8500000,
     status: 'active',
     insured: true,
-    policyNumber: 'POL-2026-001234'
+    policyNumber: 'POL-2026-001234',
+    logbookUploaded: true
   },
   {
     id: '2',
     make: 'Honda',
     model: 'Civic',
-    year: 2022,
+    yom: 2022,
     registration: 'KDB 456B',
+    chassisNumber: '1HGBH41JXMN109876',
+    engineNumber: 'R18A1-234567',
     value: 3200000,
     status: 'active',
-    insured: false
+    insured: false,
+    logbookUploaded: false
   }
 ]
 
@@ -145,18 +153,42 @@ export default function AssetsPage() {
                       <Input id="model" placeholder="e.g., Land Cruiser" required />
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="year">Year *</Label>
-                      <Input id="year" type="number" placeholder="2024" required />
+                      <Label htmlFor="yom">Year of Manufacture (YOM) *</Label>
+                      <Input id="yom" type="number" placeholder="2023" required />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="registration">Registration *</Label>
+                      <Label htmlFor="registration">Registration Number *</Label>
                       <Input id="registration" placeholder="KCE 123A" required />
                     </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="chassisNumber">Chassis Number *</Label>
+                      <Input id="chassisNumber" placeholder="JTMHV05J504123456" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="engineNumber">Engine Number *</Label>
+                      <Input id="engineNumber" placeholder="1GR-FE-1234567" required />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="value">Vehicle Value (KES) *</Label>
                       <Input id="value" type="number" placeholder="8500000" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="logbook">Vehicle Logbook</Label>
+                      <div className="flex items-center gap-2">
+                        <Input id="logbook" type="file" accept=".pdf,.jpg,.jpeg,.png" />
+                        <Button type="button" variant="outline" size="sm">
+                          <Upload className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Upload PDF, JPG, or PNG (max 5MB)
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-2 justify-end">
@@ -183,7 +215,7 @@ export default function AssetsPage() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-lg">
-                            {vehicle.year} {vehicle.make} {vehicle.model}
+                            {vehicle.yom} {vehicle.make} {vehicle.model}
                           </h3>
                           {vehicle.insured ? (
                             <Badge variant="default" className="gap-1">
@@ -203,8 +235,36 @@ export default function AssetsPage() {
                             <p className="font-medium font-mono">{vehicle.registration}</p>
                           </div>
                           <div>
+                            <p className="text-muted-foreground">YOM</p>
+                            <p className="font-medium">{vehicle.yom}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Chassis Number</p>
+                            <p className="font-medium font-mono text-xs">{vehicle.chassisNumber}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Engine Number</p>
+                            <p className="font-medium font-mono text-xs">{vehicle.engineNumber}</p>
+                          </div>
+                          <div>
                             <p className="text-muted-foreground">Value</p>
                             <p className="font-medium">KES {vehicle.value.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Logbook</p>
+                            <div className="flex items-center gap-1">
+                              {vehicle.logbookUploaded ? (
+                                <>
+                                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                  <span className="text-green-600 text-xs font-medium">Uploaded</span>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertCircle className="h-3 w-3 text-amber-600" />
+                                  <span className="text-amber-600 text-xs font-medium">Pending</span>
+                                </>
+                              )}
+                            </div>
                           </div>
                           {vehicle.insured && (
                             <div className="col-span-2">
