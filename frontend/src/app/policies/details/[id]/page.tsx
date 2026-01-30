@@ -398,8 +398,7 @@ export default function PolicyDetailPage() {
                   {/* What's Covered */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      <CardTitle>
                         What's Covered
                       </CardTitle>
                     </CardHeader>
@@ -418,8 +417,7 @@ export default function PolicyDetailPage() {
                   {/* What's Not Covered */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <XCircle className="h-5 w-5 text-red-500" />
+                      <CardTitle>
                         What's Not Covered
                       </CardTitle>
                     </CardHeader>
@@ -777,8 +775,7 @@ export default function PolicyDetailPage() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <CardTitle>
                       What's Covered
                     </CardTitle>
                   </CardHeader>
@@ -796,8 +793,7 @@ export default function PolicyDetailPage() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <XCircle className="h-5 w-5 text-red-500" />
+                    <CardTitle>
                       What's Not Covered
                     </CardTitle>
                   </CardHeader>
