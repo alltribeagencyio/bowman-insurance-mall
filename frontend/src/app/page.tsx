@@ -90,6 +90,36 @@ const featuredPolicies = [
     rating: 4.6,
     features: ['Death benefit', 'Savings plan', 'Loan facility', 'Tax benefits'],
   },
+  {
+    id: '4',
+    name: 'Home & Contents Insurance',
+    company: 'CIC Insurance',
+    category: 'Home Insurance',
+    premium: 8500,
+    coverage: 3000000,
+    rating: 4.4,
+    features: ['Fire cover', 'Burglary protection', 'Contents cover', 'Natural disasters'],
+  },
+  {
+    id: '5',
+    name: 'International Travel Cover',
+    company: 'Madison Insurance',
+    category: 'Travel Insurance',
+    premium: 2500,
+    coverage: 1000000,
+    rating: 4.7,
+    features: ['Medical emergencies', 'Trip cancellation', 'Lost luggage', 'Flight delay'],
+  },
+  {
+    id: '6',
+    name: 'Business Liability Insurance',
+    company: 'APA Insurance',
+    category: 'Business Insurance',
+    premium: 28000,
+    coverage: 5000000,
+    rating: 4.5,
+    features: ['Public liability', 'Professional indemnity', 'Property damage', 'Legal expenses'],
+  },
 ]
 
 export default function Home() {
@@ -128,112 +158,32 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-6xl mx-auto">
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <Shield className="h-10 w-10 text-primary mx-auto mb-2" />
-                <div className="text-2xl font-bold">50+</div>
-                <p className="text-sm text-muted-foreground">Insurance Policies</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <Building2 className="h-10 w-10 text-primary mx-auto mb-2" />
-                <div className="text-2xl font-bold">15+</div>
-                <p className="text-sm text-muted-foreground">Partner Insurers</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <TrendingUp className="h-10 w-10 text-primary mx-auto mb-2" />
-                <div className="text-2xl font-bold">5,000+</div>
-                <p className="text-sm text-muted-foreground">Happy Customers</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <Clock className="h-10 w-10 text-primary mx-auto mb-2" />
-                <div className="text-2xl font-bold">24/7</div>
-                <p className="text-sm text-muted-foreground">Customer Support</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <CheckCircle className="h-10 w-10 text-primary mx-auto mb-2" />
-                <div className="text-2xl font-bold">Instant</div>
-                <p className="text-sm text-muted-foreground">Online Approval</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Policy Categories */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-2">Browse by Category</h2>
-            <p className="text-muted-foreground">
-              Choose the type of insurance you need
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Product Categories */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-6xl mx-auto">
             {policyCategories.map((category) => {
               const Icon = category.icon
               return (
-                <Card
-                  key={category.id}
-                  className={`hover:shadow-lg transition-shadow cursor-pointer ${
-                    selectedCategory === category.id ? 'ring-2 ring-primary' : ''
-                  }`}
-                  onClick={() => setSelectedCategory(category.id)}
-                >
-                  <CardHeader>
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-lg bg-primary/10">
-                        <Icon className="h-6 w-6 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <CardTitle>{category.name}</CardTitle>
-                        <CardDescription className="mt-2">
-                          {category.description}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {category.policyCount} policies
-                      </span>
-                      <span className="font-semibold">
-                        From KES {category.startingPrice.toLocaleString()}/mo
-                      </span>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" className="w-full" asChild>
-                      <Link href={`/policies/${category.id}`}>
-                        View Policies
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
+                <Link key={category.id} href={`/policies/${category.id}`}>
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <CardContent className="pt-6 text-center">
+                      <Icon className="h-10 w-10 text-primary mx-auto mb-2" />
+                      <p className="text-sm font-medium">{category.name}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
               )
             })}
           </div>
         </div>
       </section>
 
-      {/* Featured Policies */}
+      {/* Popular Policies */}
       <section className="py-12 bg-muted/50">
         <div className="container mx-auto px-4">
           <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-2">Featured Policies</h2>
+            <h2 className="text-3xl font-bold mb-2">Popular Policies</h2>
             <p className="text-muted-foreground">
-              Popular choices from our customers
+              Top choices from our customers across all categories
             </p>
           </div>
 
