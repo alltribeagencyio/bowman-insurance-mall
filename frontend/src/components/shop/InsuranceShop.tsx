@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Search, SlidersHorizontal, X, Star, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface InsuranceProduct {
@@ -459,7 +460,7 @@ export function InsuranceShop({
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                     {filteredProducts.map((product) => (
                       <Card key={product.id} className="hover:shadow-xl transition-shadow flex flex-col relative overflow-hidden group">
                         {/* Badge */}
@@ -494,7 +495,7 @@ export function InsuranceShop({
 
                         <CardContent className="space-y-4 flex-1">
                           <div>
-                            <div className="text-3xl font-bold">
+                            <div className="text-2xl font-bold">
                               KES {product.premium.toLocaleString()}
                             </div>
                             <p className="text-sm text-muted-foreground">per month</p>
@@ -507,17 +508,22 @@ export function InsuranceShop({
                             </p>
                           </div>
 
-                          <div>
-                            <p className="text-sm text-muted-foreground mb-2">Key Features</p>
-                            <ul className="space-y-1.5">
-                              {product.features.slice(0, 3).map((feature, idx) => (
-                                <li key={idx} className="text-sm flex items-center gap-2">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                                  {feature}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+                          <Collapsible>
+                            <CollapsibleTrigger className="flex items-center justify-between w-full text-left hover:text-primary transition-colors">
+                              <p className="text-sm text-muted-foreground">Key Features</p>
+                              <ChevronDown className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-180" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2">
+                              <ul className="space-y-1.5">
+                                {product.features.map((feature, idx) => (
+                                  <li key={idx} className="text-sm flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                                    {feature}
+                                  </li>
+                                ))}
+                              </ul>
+                            </CollapsibleContent>
+                          </Collapsible>
                         </CardContent>
 
                         <CardFooter className="flex gap-2">

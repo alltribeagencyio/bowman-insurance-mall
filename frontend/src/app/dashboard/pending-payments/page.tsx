@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import {
   AlertCircle,
   Calendar,
@@ -141,6 +143,8 @@ const mockSchedules: PaymentSchedule[] = [
 function PendingPaymentsContent() {
   const [schedules, setSchedules] = useState<PaymentSchedule[]>(mockSchedules)
   const [isLoading, setIsLoading] = useState(false)
+  // Mock wallet balance - in production, this would come from API/context
+  const [walletBalance, setWalletBalance] = useState(45000)
 
   const getDaysUntilDue = (dueDate: string): number => {
     return Math.floor(
@@ -177,9 +181,43 @@ function PendingPaymentsContent() {
     window.location.href = `/payment/${schedule.transaction.policy.id}?amount=${schedule.amount}&schedule_id=${schedule.id}`
   }
 
-  const handleToggleAutoPay = (scheduleId: string) => {
-    toast.success('Auto-pay settings updated')
-    // TODO: Implement auto-pay toggle API call
+  const handlePayFromWallet = (schedule: PaymentSchedule) => {
+    if (walletBalance < schedule.amount) {
+      toast.error(`Insufficient wallet balance. You need KES ${(schedule.amount - walletBalance).toLocaleString()} more.`)
+      return
+    }
+
+    // Deduct from wallet and update payment status
+    setWalletBalance(prev => prev - schedule.amount)
+    setSchedules(prev => prev.map(s =>
+      s.id === schedule.id
+        ? { ...s, status: 'paid' as const }
+        : s
+    ))
+
+    toast.success(`Payment of KES ${schedule.amount.toLocaleString()} deducted from wallet. New balance: KES ${(walletBalance - schedule.amount).toLocaleString()}`)
+  }
+
+  const handleToggleAutoPay = (schedule: PaymentSchedule) => {
+    const newAutoPayStatus = !schedule.is_auto_pay
+
+    // Check wallet balance if enabling auto-pay
+    if (newAutoPayStatus && walletBalance < schedule.amount) {
+      toast.error(`Cannot enable auto-pay. Insufficient wallet balance. You need KES ${(schedule.amount - walletBalance).toLocaleString()} more.`)
+      return
+    }
+
+    setSchedules(prev => prev.map(s =>
+      s.id === schedule.id
+        ? { ...s, is_auto_pay: newAutoPayStatus }
+        : s
+    ))
+
+    if (newAutoPayStatus) {
+      toast.success(`Auto-pay enabled. Payment will be automatically deducted from your wallet on ${new Date(schedule.due_date).toLocaleDateString()}`)
+    } else {
+      toast.success('Auto-pay disabled')
+    }
   }
 
   const handleSetReminder = (scheduleId: string) => {
@@ -230,12 +268,37 @@ function PendingPaymentsContent() {
         </div>
       </div>
 
+      {/* Wallet Balance Banner */}
+      <Card className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                <Wallet className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Available Wallet Balance</p>
+                <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                  KES {walletBalance.toLocaleString()}
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/wallet">
+                <Wallet className="w-4 h-4 mr-2" />
+                Manage Wallet
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">KES {totalAmount.toLocaleString()}</div>
@@ -355,19 +418,39 @@ function PendingPaymentsContent() {
                       </div>
 
                       <div className="flex flex-col gap-2 lg:items-end">
-                        <Button onClick={() => handlePayNow(schedule)} size="lg" className="w-full lg:w-auto">
-                          <DollarSign className="w-4 h-4 mr-2" />
-                          Pay Now
-                        </Button>
                         <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSetReminder(schedule.id)}
+                          onClick={() => handlePayFromWallet(schedule)}
+                          size="lg"
                           className="w-full lg:w-auto"
+                          disabled={walletBalance < schedule.amount}
                         >
-                          <Bell className="w-4 h-4 mr-2" />
-                          Set Reminder
+                          <Wallet className="w-4 h-4 mr-2" />
+                          Pay from Wallet
                         </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePayNow(schedule)}
+                            className="flex-1 lg:flex-none"
+                          >
+                            <DollarSign className="w-4 h-4 mr-2" />
+                            Other Payment
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSetReminder(schedule.id)}
+                            className="flex-1 lg:flex-none"
+                          >
+                            <Bell className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        {walletBalance < schedule.amount && (
+                          <p className="text-xs text-red-600 text-right">
+                            Insufficient wallet balance
+                          </p>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -463,31 +546,69 @@ function PendingPaymentsContent() {
                       </div>
 
                       <div className="flex flex-col gap-2 lg:items-end">
+                        {/* Auto-pay Toggle */}
+                        <div className="flex items-center space-x-2 p-3 rounded-lg border bg-muted/50">
+                          <Switch
+                            id={`auto-pay-${schedule.id}`}
+                            checked={schedule.is_auto_pay}
+                            onCheckedChange={() => handleToggleAutoPay(schedule)}
+                            disabled={walletBalance < schedule.amount}
+                          />
+                          <Label htmlFor={`auto-pay-${schedule.id}`} className="cursor-pointer text-sm">
+                            {schedule.is_auto_pay ? (
+                              <span className="text-green-600 font-medium">Auto-Pay Enabled</span>
+                            ) : (
+                              <span>Enable Auto-Pay</span>
+                            )}
+                          </Label>
+                        </div>
+
                         {!schedule.is_auto_pay && (
-                          <Button onClick={() => handlePayNow(schedule)} size="lg" className="w-full lg:w-auto">
-                            <DollarSign className="w-4 h-4 mr-2" />
-                            Pay Now
-                          </Button>
-                        )}
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleToggleAutoPay(schedule.id)}
-                            className="flex-1 lg:flex-none"
-                          >
-                            {schedule.is_auto_pay ? 'Disable' : 'Enable'} Auto-Pay
-                          </Button>
-                          {!schedule.reminder_sent && (
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handlePayFromWallet(schedule)}
+                              size="sm"
+                              className="flex-1 lg:flex-none"
+                              disabled={walletBalance < schedule.amount}
+                            >
+                              <Wallet className="w-4 h-4 mr-2" />
+                              Pay from Wallet
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleSetReminder(schedule.id)}
+                              onClick={() => handlePayNow(schedule)}
+                              className="flex-1 lg:flex-none"
                             >
-                              <Bell className="w-4 h-4" />
+                              <DollarSign className="w-4 h-4 mr-2" />
+                              Other Payment
                             </Button>
-                          )}
-                        </div>
+                          </div>
+                        )}
+
+                        {!schedule.reminder_sent && !schedule.is_auto_pay && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSetReminder(schedule.id)}
+                            className="w-full lg:w-auto"
+                          >
+                            <Bell className="w-4 h-4 mr-2" />
+                            Set Reminder
+                          </Button>
+                        )}
+
+                        {walletBalance < schedule.amount && (
+                          <p className="text-xs text-amber-600 text-right">
+                            Top up wallet to enable auto-pay
+                          </p>
+                        )}
+
+                        {schedule.is_auto_pay && (
+                          <p className="text-xs text-green-600 text-right">
+                            Will be paid automatically on due date
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -526,10 +647,11 @@ function PendingPaymentsContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
-          <p>• Enable Auto-Pay to never miss a payment deadline</p>
-          <p>• Set reminders for upcoming payments to plan ahead</p>
-          <p>• Pay early to avoid late fees and policy suspension</p>
-          <p>• Installment plans help you spread the cost over time</p>
+          <p>• <strong>Auto-Pay with Wallet:</strong> Enable auto-pay to automatically deduct payments from your Bowman Wallet on the due date</p>
+          <p>• <strong>Pay from Wallet:</strong> Use your wallet balance for instant payments without transaction fees</p>
+          <p>• <strong>Top Up Wallet:</strong> Deposit funds in advance to ensure sufficient balance for auto-pay</p>
+          <p>• <strong>Set Reminders:</strong> Get notified before due dates to plan ahead</p>
+          <p>• <strong>Pay Early:</strong> Avoid late fees and policy suspension by paying before the due date</p>
         </CardContent>
       </Card>
     </div>

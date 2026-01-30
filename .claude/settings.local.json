@@ -25,7 +25,8 @@
       "Bash(ls:*)",
       "Bash(npm run start)",
       "Bash(python manage.py shell -c \"from users.models import User; admin = User.objects.create_superuser\\(email=''admin@bowman.co.ke'', password=''Admin123!'', first_name=''Admin'', last_name=''User'', phone_number=''+254700000000''\\); print\\(''Admin user created:'', admin.email\\)\")",
-      "Bash(python3 manage.py shell -c \"from users.models import User; admin = User.objects.create_superuser\\(email=''admin@bowman.co.ke'', password=''Admin123!'', first_name=''Admin'', last_name=''User'', phone_number=''+254700000000''\\); print\\(''Admin user created:'', admin.email\\)\")"
+      "Bash(python3 manage.py shell -c \"from users.models import User; admin = User.objects.create_superuser\\(email=''admin@bowman.co.ke'', password=''Admin123!'', first_name=''Admin'', last_name=''User'', phone_number=''+254700000000''\\); print\\(''Admin user created:'', admin.email\\)\")",
+      "Bash(git reset:*)"
     ]
   }
 }
