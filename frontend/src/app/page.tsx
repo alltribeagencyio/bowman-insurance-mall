@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
-import { Search, Car, Heart, Users, Home as HomeIcon, Plane, Building2, Briefcase, Shield, TrendingUp, Filter } from 'lucide-react'
+import { Search, Car, Heart, Users, Home as HomeIcon, Plane, Building2, Briefcase, Shield, TrendingUp, Filter, Clock, CheckCircle } from 'lucide-react'
 
 // Mock data - will be replaced with API data
 const policyCategories = [
@@ -129,7 +129,7 @@ export default function Home() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-6xl mx-auto">
             <Card>
               <CardContent className="pt-6 text-center">
                 <Shield className="h-10 w-10 text-primary mx-auto mb-2" />
@@ -149,6 +149,20 @@ export default function Home() {
                 <TrendingUp className="h-10 w-10 text-primary mx-auto mb-2" />
                 <div className="text-2xl font-bold">5,000+</div>
                 <p className="text-sm text-muted-foreground">Happy Customers</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <Clock className="h-10 w-10 text-primary mx-auto mb-2" />
+                <div className="text-2xl font-bold">24/7</div>
+                <p className="text-sm text-muted-foreground">Customer Support</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <CheckCircle className="h-10 w-10 text-primary mx-auto mb-2" />
+                <div className="text-2xl font-bold">Instant</div>
+                <p className="text-sm text-muted-foreground">Online Approval</p>
               </CardContent>
             </Card>
           </div>
