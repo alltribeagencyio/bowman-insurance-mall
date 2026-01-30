@@ -28,7 +28,9 @@ import {
   Home,
   ShoppingBag,
   Receipt,
-  LifeBuoy
+  LifeBuoy,
+  Wallet,
+  Award
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -47,6 +49,7 @@ const navigation: NavItem[] = [
   { name: 'Shop Insurance', href: '/shop', icon: ShoppingBag },
 
   // Financial management - grouped together
+  { name: 'Wallet', href: '/dashboard/wallet', icon: Wallet },
   {
     name: 'Payments',
     icon: DollarSign,
@@ -60,6 +63,9 @@ const navigation: NavItem[] = [
   { name: 'Claims', href: '/dashboard/claims', icon: FileText },
   { name: 'Assets', href: '/dashboard/assets', icon: CreditCard },
   { name: 'Documents', href: '/dashboard/documents', icon: Download },
+
+  // Rewards and benefits
+  { name: 'Loyalty Program', href: '/dashboard/loyalty', icon: Award },
 
   // Support and account - secondary actions
   { name: 'Support', href: '/dashboard/support', icon: LifeBuoy },
