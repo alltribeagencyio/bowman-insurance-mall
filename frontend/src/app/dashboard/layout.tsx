@@ -46,14 +46,14 @@ const navigation: NavItem[] = [
   // Primary actions - most frequently accessed
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Policies', href: '/dashboard/my-policies', icon: Shield },
-  { name: 'Shop Insurance', href: '/shop', icon: ShoppingBag },
+  { name: 'Buy Insurance', href: '/shop', icon: ShoppingBag },
 
   // Financial management - grouped together
-  { name: 'Wallet', href: '/dashboard/wallet', icon: Wallet },
   {
-    name: 'Payments',
-    icon: DollarSign,
+    name: 'Wallet',
+    icon: Wallet,
     children: [
+      { name: 'My Wallet', href: '/dashboard/wallet', icon: Wallet },
       { name: 'Pending Payments', href: '/dashboard/pending-payments', icon: Clock, badge: 2 },
       { name: 'All Payments', href: '/dashboard/payments', icon: Receipt },
     ]
@@ -63,9 +63,6 @@ const navigation: NavItem[] = [
   { name: 'Claims', href: '/dashboard/claims', icon: FileText },
   { name: 'Assets', href: '/dashboard/assets', icon: CreditCard },
   { name: 'Documents', href: '/dashboard/documents', icon: Download },
-
-  // Rewards and benefits
-  { name: 'Loyalty Program', href: '/dashboard/loyalty', icon: Award },
 
   // Support and account - secondary actions
   { name: 'Support', href: '/dashboard/support', icon: LifeBuoy },
@@ -152,7 +149,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav className={cn(
-          "flex-1 px-4 py-6 space-y-1 h-[calc(100vh-16rem)]",
+          "flex-1 px-3 py-4 space-y-0.5 h-[calc(100vh-16rem)]",
           sidebarCollapsed ? "overflow-visible" : "overflow-y-auto"
         )}>
           {navigation.map((item) => {
@@ -171,7 +168,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                   href={item.href!}
                   title={sidebarCollapsed ? item.name : undefined}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative group',
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative group',
                     isActive
                       ? 'bg-primary text-primary-foreground'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
@@ -212,7 +209,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                   onClick={() => toggleExpanded(item.name)}
                   title={sidebarCollapsed ? item.name : undefined}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative group',
+                    'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative group',
                     hasActiveChild
                       ? 'bg-primary/10 text-primary'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',

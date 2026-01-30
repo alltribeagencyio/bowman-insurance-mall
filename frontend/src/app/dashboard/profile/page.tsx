@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
 import { ProtectedRoute } from '@/components/auth/protected-route'
@@ -24,8 +25,19 @@ import {
   Edit,
   Mail,
   Smartphone,
-  CheckCircle2
+  CheckCircle2,
+  Award,
+  Star,
+  Gift,
+  TrendingUp,
+  Crown,
+  Trophy,
+  Target,
+  Sparkles,
+  Zap,
+  ArrowRight
 } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 
 interface Beneficiary {
@@ -60,10 +72,47 @@ const mockBeneficiaries: Beneficiary[] = [
   }
 ]
 
+// Mock loyalty data
+const mockLoyaltyData = {
+  points: 2450,
+  pointsValue: 2450,
+  tier: 'Gold',
+  nextTier: 'Platinum',
+  pointsToNextTier: 550,
+  lifetimePoints: 5200,
+  pointsHistory: [
+    { id: '1', action: 'Policy Purchase - Motor Insurance', points: 500, date: '2026-01-28', type: 'earned' },
+    { id: '2', action: 'Referral Bonus - Friend Signup', points: 250, date: '2026-01-25', type: 'earned' },
+    { id: '3', action: 'Redeemed for Medical Insurance Discount', points: -1000, date: '2026-01-20', type: 'redeemed' },
+    { id: '4', action: 'On-Time Premium Payment', points: 100, date: '2026-01-15', type: 'earned' },
+  ],
+  rewards: [
+    { id: '1', title: '10% Discount on Next Premium', pointsCost: 1000, description: 'Get 10% off on your next policy premium payment', category: 'discount', available: true },
+    { id: '2', title: 'Free Motor Insurance Add-on', pointsCost: 2000, description: 'Add windscreen cover or personal accident cover for free', category: 'upgrade', available: true },
+    { id: '3', title: '20% Discount on Next Premium', pointsCost: 1800, description: 'Get 20% off on your next policy premium payment', category: 'discount', available: true },
+  ]
+}
+
+const tiers = [
+  { name: 'Bronze', minPoints: 0, color: 'text-orange-700', bgColor: 'bg-orange-100 dark:bg-orange-950' },
+  { name: 'Silver', minPoints: 1000, color: 'text-gray-600', bgColor: 'bg-gray-100 dark:bg-gray-800' },
+  { name: 'Gold', minPoints: 2000, color: 'text-yellow-600', bgColor: 'bg-yellow-100 dark:bg-yellow-950' },
+  { name: 'Platinum', minPoints: 3000, color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-950' },
+]
+
 function ProfileContent() {
   const { user, updateProfile } = useAuth()
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('personal')
   const [isLoading, setIsLoading] = useState(false)
+
+  // Handle tab query parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && ['personal', 'loyalty', 'security', 'beneficiaries', 'notifications', 'advanced'].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   // Personal Information State
   const [formData, setFormData] = useState({
@@ -81,6 +130,9 @@ function ProfileContent() {
 
   // Beneficiaries State
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>(mockBeneficiaries)
+
+  // Loyalty State
+  const [loyaltyData] = useState(mockLoyaltyData)
 
   // Notification Preferences State
   const [notifications, setNotifications] = useState({
@@ -198,10 +250,14 @@ function ProfileContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
           <TabsTrigger value="personal" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Personal</span>
+          </TabsTrigger>
+          <TabsTrigger value="loyalty" className="flex items-center gap-2">
+            <Award className="h-4 w-4" />
+            <span className="hidden sm:inline">Loyalty</span>
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Lock className="h-4 w-4" />
@@ -323,6 +379,192 @@ function ProfileContent() {
                   {isLoading ? 'Saving...' : 'Save Changes'}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Loyalty Program Tab */}
+        <TabsContent value="loyalty" className="space-y-6">
+          {/* Points Balance Card */}
+          <Card className="bg-gradient-to-br from-purple-600 to-purple-800 text-white">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-sm opacity-90 mb-2">Your Points Balance</p>
+                  <h2 className="text-5xl font-bold">{loyaltyData.points.toLocaleString()}</h2>
+                  <p className="text-sm opacity-90 mt-2">
+                    ≈ KES {loyaltyData.pointsValue.toLocaleString()} in value
+                  </p>
+                </div>
+                <Trophy className="h-20 w-20 opacity-50" />
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Crown className="h-5 w-5" />
+                    <span className="font-semibold">Current Tier: {loyaltyData.tier}</span>
+                  </div>
+                  <span className="text-sm opacity-90">
+                    {loyaltyData.pointsToNextTier} points to {loyaltyData.nextTier}
+                  </span>
+                </div>
+                <Progress value={70} className="h-2 bg-purple-900" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Lifetime Points</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{loyaltyData.lifetimePoints.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Total earned</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Available Rewards</CardTitle>
+                <Gift className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loyaltyData.rewards.filter(r => r.pointsCost <= loyaltyData.points).length}
+                </div>
+                <p className="text-xs text-muted-foreground">Can redeem now</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Membership Tiers */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Membership Tiers
+              </CardTitle>
+              <CardDescription>Progress through tiers to unlock better rewards</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {tiers.map((tier) => (
+                  <div
+                    key={tier.name}
+                    className={`p-4 rounded-lg border-2 ${
+                      tier.name === loyaltyData.tier
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border'
+                    }`}
+                  >
+                    <div className={`${tier.bgColor} ${tier.color} p-2 rounded-full w-fit mb-2`}>
+                      <Crown className="h-6 w-6" />
+                    </div>
+                    <h4 className="font-bold">{tier.name}</h4>
+                    <p className="text-xs text-muted-foreground">{tier.minPoints}+ points</p>
+                    {tier.name === loyaltyData.tier && (
+                      <Badge variant="default" className="mt-2">Current</Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Available Rewards */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Gift className="h-5 w-5" />
+                Available Rewards
+              </CardTitle>
+              <CardDescription>Redeem your points for exclusive benefits</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {loyaltyData.rewards.map((reward) => {
+                  const canRedeem = reward.pointsCost <= loyaltyData.points && reward.available
+                  return (
+                    <div
+                      key={reward.id}
+                      className={`p-4 border rounded-lg ${
+                        !canRedeem ? 'opacity-60' : 'hover:bg-muted/50'
+                      } transition-colors`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <h4 className="font-semibold flex items-center gap-2">
+                            {reward.title}
+                            {reward.category === 'free' && <Sparkles className="h-4 w-4 text-amber-500" />}
+                          </h4>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {reward.description}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-3">
+                        <div className="flex items-center gap-1">
+                          <Star className="h-4 w-4 text-amber-500" />
+                          <span className="font-bold">{reward.pointsCost.toLocaleString()} points</span>
+                        </div>
+                        <Button size="sm" disabled={!canRedeem}>
+                          Redeem
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Points History */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Points History</CardTitle>
+              <CardDescription>Recent earning and redemption activity</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {loyaltyData.pointsHistory.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      {entry.type === 'earned' ? (
+                        <div className="p-2 rounded-full bg-green-100 dark:bg-green-950">
+                          <Star className="h-4 w-4 text-green-600" />
+                        </div>
+                      ) : (
+                        <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-950">
+                          <Gift className="h-4 w-4 text-purple-600" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium text-sm">{entry.action}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(entry.date).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <div
+                      className={`font-bold ${
+                        entry.type === 'earned' ? 'text-green-600' : 'text-purple-600'
+                      }`}
+                    >
+                      {entry.type === 'earned' ? '+' : ''}{entry.points} pts
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
