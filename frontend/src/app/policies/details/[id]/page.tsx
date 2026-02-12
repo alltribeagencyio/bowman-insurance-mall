@@ -36,6 +36,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getPolicyTypeById, type PolicyTypeDetail } from '@/lib/api/categories'
+import { useAuth } from '@/lib/auth/auth-context'
 
 // Mock policy data - for browsing policies
 const browsingPolicyData = {
@@ -208,6 +209,7 @@ export default function PolicyDetailPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [policyData, setPolicyData] = useState<PolicyTypeDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const { isAuthenticated } = useAuth()
 
   // Check if this is a user's owned policy (from /dashboard/my-policies)
   // vs browsing policy (from /policies)
@@ -369,7 +371,7 @@ export default function PolicyDetailPage() {
               )}
             </Card>
 
-            {/* Tabs for Owned Policies */}
+            {/* Tabs - Show all tabs for authenticated users, only Overview for guests */}
             {isOwnedPolicy ? (
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
@@ -763,119 +765,268 @@ export default function PolicyDetailPage() {
                 </TabsContent>
               </Tabs>
             ) : (
-              /* Non-owned policy content */
-              <div className="space-y-6">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div
-                      className={`text-muted-foreground ${
-                        !showFullDescription && 'line-clamp-3'
-                      }`}
-                    >
-                      {policyData.description}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowFullDescription(!showFullDescription)}
-                      className="mt-2"
-                    >
-                      {showFullDescription ? (
-                        <>
-                          <ChevronUp className="h-4 w-4 mr-1" />
-                          Show Less
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="h-4 w-4 mr-1" />
-                          Read More
-                        </>
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
+              /* Browsing policy content - with conditional tabs based on authentication */
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                <TabsList className={`grid w-full ${isAuthenticated ? 'grid-cols-2 lg:grid-cols-6' : 'grid-cols-1'}`}>
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  {isAuthenticated && (
+                    <>
+                      <TabsTrigger value="payments">Payments</TabsTrigger>
+                      <TabsTrigger value="claims">Claims</TabsTrigger>
+                      <TabsTrigger value="documents">Documents</TabsTrigger>
+                      <TabsTrigger value="beneficiaries">Beneficiaries</TabsTrigger>
+                      <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                    </>
+                  )}
+                </TabsList>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      What's Covered
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {policyData.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+                {/* Overview Tab - Always visible */}
+                <TabsContent value="overview" className="space-y-6">
+                  {/* Description */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Policy Description</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div
+                        className={`text-muted-foreground ${
+                          !showFullDescription && 'line-clamp-3'
+                        }`}
+                      >
+                        {policyData.description}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowFullDescription(!showFullDescription)}
+                        className="mt-2"
+                      >
+                        {showFullDescription ? (
+                          <>
+                            <ChevronUp className="h-4 w-4 mr-1" />
+                            Show Less
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 mr-1" />
+                            Read More
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      What's Not Covered
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {policyData.exclusions.map((exclusion, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                          <span>{exclusion}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+                  {/* What's Covered */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        What's Covered
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {policyData.features.map((feature, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Requirements
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {policyData.requirements.map((requirement, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                          <span>{requirement}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+                  {/* What's Not Covered */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        What's Not Covered
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {policyData.exclusions.map((exclusion, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                            <span>{exclusion}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Terms & Conditions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Minimum Age:</span>
-                      <span className="font-medium">{policyData.terms.minimumAge} years</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Maximum Age:</span>
-                      <span className="font-medium">{policyData.terms.maximumAge} years</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Excess Amount:</span>
-                      <span className="font-medium">
-                        KES {policyData.terms.excessAmount.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Claim Processing:</span>
-                      <span className="font-medium">{policyData.terms.claimProcessingTime}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  {/* Requirements */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Requirements
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {policyData.requirements.map((requirement, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                            <span>{requirement}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  {/* Terms & Conditions */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Terms & Conditions</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Minimum Age:</span>
+                        <span className="font-medium">{policyData.terms.minimumAge} years</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Maximum Age:</span>
+                        <span className="font-medium">{policyData.terms.maximumAge} years</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Excess Amount:</span>
+                        <span className="font-medium">
+                          KES {policyData.terms.excessAmount.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Claim Processing:</span>
+                        <span className="font-medium">{policyData.terms.claimProcessingTime}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Protected tabs - Only visible to authenticated users */}
+                {isAuthenticated && (
+                  <>
+                    {/* Payments Tab */}
+                    <TabsContent value="payments" className="space-y-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <DollarSign className="h-5 w-5" />
+                            Payment Information
+                          </CardTitle>
+                          <CardDescription>
+                            Sign in to view payment details for this policy type
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-center py-8">
+                            <DollarSign className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <p className="text-muted-foreground mb-4">Purchase this policy to view payment information</p>
+                            <Button asChild>
+                              <Link href={`/purchase/${params.id}`}>Purchase Policy</Link>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    {/* Claims Tab */}
+                    <TabsContent value="claims" className="space-y-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Claims Information
+                          </CardTitle>
+                          <CardDescription>
+                            Purchase this policy to file and track claims
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-center py-8">
+                            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <p className="text-muted-foreground mb-4">You need to purchase this policy to file claims</p>
+                            <Button asChild>
+                              <Link href={`/purchase/${params.id}`}>Purchase Policy</Link>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    {/* Documents Tab */}
+                    <TabsContent value="documents" className="space-y-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileCheck className="h-5 w-5" />
+                            Policy Documents
+                          </CardTitle>
+                          <CardDescription>
+                            Purchase this policy to access related documents
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-center py-8">
+                            <FileCheck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <p className="text-muted-foreground mb-4">Policy documents will be available after purchase</p>
+                            <Button asChild>
+                              <Link href={`/purchase/${params.id}`}>Purchase Policy</Link>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    {/* Beneficiaries Tab */}
+                    <TabsContent value="beneficiaries" className="space-y-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5" />
+                            Beneficiaries
+                          </CardTitle>
+                          <CardDescription>
+                            Purchase this policy to add beneficiaries
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-center py-8">
+                            <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <p className="text-muted-foreground mb-4">Add beneficiaries after purchasing this policy</p>
+                            <Button asChild>
+                              <Link href={`/purchase/${params.id}`}>Purchase Policy</Link>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    {/* Timeline Tab */}
+                    <TabsContent value="timeline" className="space-y-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <History className="h-5 w-5" />
+                            Policy Timeline
+                          </CardTitle>
+                          <CardDescription>
+                            Purchase this policy to view activity timeline
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-center py-8">
+                            <History className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <p className="text-muted-foreground mb-4">Timeline will be available after purchase</p>
+                            <Button asChild>
+                              <Link href={`/purchase/${params.id}`}>Purchase Policy</Link>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </>
+                )}
+              </Tabs>
             )}
           </div>
 
