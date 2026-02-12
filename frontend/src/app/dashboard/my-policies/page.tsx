@@ -23,8 +23,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProtectedRoute } from '@/components/auth/protected-route'
-import type { Policy } from '@/types'
-import { getUserPolicies } from '@/lib/api/policies'
+import { getUserPolicies, type Policy } from '@/lib/api/policies'
 
 // Mock data for development - will be replaced with API calls
 const mockPolicies: Policy[] = [
@@ -34,41 +33,21 @@ const mockPolicies: Policy[] = [
     policy_type: {
       id: '1',
       name: 'Comprehensive Motor Insurance',
-      description: 'Full coverage for your vehicle',
-      base_premium: 15000,
-      coverage_details: {},
-      features: [],
-      is_active: true,
-      category: {
-        id: '1',
-        name: 'Motor Insurance',
-        slug: 'motor',
-        description: 'Vehicle insurance',
-        icon: 'car'
-      },
-      insurance_company: {
-        id: '1',
-        name: 'Jubilee Insurance',
-        logo: '',
-        rating: 4.5,
-        description: '',
-        is_active: true
-      }
+      category: 'Motor Insurance'
     },
     insurance_company: {
       id: '1',
       name: 'Jubilee Insurance',
-      logo: '',
-      rating: 4.5,
-      description: '',
-      is_active: true
+      logo: ''
     },
     status: 'active',
     start_date: '2026-01-01',
     end_date: '2026-12-31',
+    coverage_amount: 2000000,
     premium_amount: 15000,
-    payment_frequency: 'monthly',
-    created_at: '2026-01-01T00:00:00Z'
+    premium_frequency: 'monthly',
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z'
   },
   {
     id: '2',
@@ -76,41 +55,21 @@ const mockPolicies: Policy[] = [
     policy_type: {
       id: '2',
       name: 'Medical Insurance Plus',
-      description: 'Comprehensive health coverage',
-      base_premium: 25000,
-      coverage_details: {},
-      features: [],
-      is_active: true,
-      category: {
-        id: '2',
-        name: 'Medical Insurance',
-        slug: 'medical',
-        description: 'Health insurance',
-        icon: 'heart'
-      },
-      insurance_company: {
-        id: '2',
-        name: 'AAR Insurance',
-        logo: '',
-        rating: 4.7,
-        description: '',
-        is_active: true
-      }
+      category: 'Medical Insurance'
     },
     insurance_company: {
       id: '2',
       name: 'AAR Insurance',
-      logo: '',
-      rating: 4.7,
-      description: '',
-      is_active: true
+      logo: ''
     },
     status: 'active',
     start_date: '2026-01-15',
     end_date: '2027-01-14',
+    coverage_amount: 5000000,
     premium_amount: 25000,
-    payment_frequency: 'annual',
-    created_at: '2026-01-15T00:00:00Z'
+    premium_frequency: 'annually',
+    created_at: '2026-01-15T00:00:00Z',
+    updated_at: '2026-01-15T00:00:00Z'
   },
   {
     id: '3',
@@ -118,41 +77,21 @@ const mockPolicies: Policy[] = [
     policy_type: {
       id: '3',
       name: 'Home Insurance',
-      description: 'Property protection',
-      base_premium: 12000,
-      coverage_details: {},
-      features: [],
-      is_active: true,
-      category: {
-        id: '3',
-        name: 'Home Insurance',
-        slug: 'home',
-        description: 'Property insurance',
-        icon: 'home'
-      },
-      insurance_company: {
-        id: '3',
-        name: 'Britam',
-        logo: '',
-        rating: 4.3,
-        description: '',
-        is_active: true
-      }
+      category: 'Home Insurance'
     },
     insurance_company: {
       id: '3',
       name: 'Britam',
-      logo: '',
-      rating: 4.3,
-      description: '',
-      is_active: true
+      logo: ''
     },
     status: 'expired',
     start_date: '2025-01-01',
     end_date: '2025-12-31',
+    coverage_amount: 3000000,
     premium_amount: 12000,
-    payment_frequency: 'annual',
-    created_at: '2025-01-01T00:00:00Z'
+    premium_frequency: 'annually',
+    created_at: '2025-01-01T00:00:00Z',
+    updated_at: '2025-01-01T00:00:00Z'
   }
 ]
 
@@ -420,7 +359,7 @@ function MyPoliciesContent() {
                         <div>
                           <span className="text-muted-foreground">Premium: </span>
                           <span className="font-medium">KES {policy.premium_amount.toLocaleString()}</span>
-                          <span className="text-muted-foreground text-xs"> /{policy.payment_frequency}</span>
+                          <span className="text-muted-foreground text-xs"> /{policy.premium_frequency}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Expires: </span>

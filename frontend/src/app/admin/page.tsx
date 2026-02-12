@@ -283,7 +283,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {formatDate(task.created_at)}
+                  {formatTimeAgo(task.created_at)}
                 </div>
               </div>
             ))}
