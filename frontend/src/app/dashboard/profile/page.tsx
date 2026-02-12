@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { getProfile } from '@/lib/api/auth'
 import { updateUserProfile, changePassword, getNotificationPreferences, updateNotificationPreferences } from '@/lib/api/profile'
+import { getBeneficiaries, createBeneficiary, updateBeneficiary, deleteBeneficiary, setPrimaryBeneficiary } from '@/lib/api/beneficiaries'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -145,6 +146,10 @@ function ProfileContent() {
       // Load notification preferences
       const prefs = await getNotificationPreferences()
       setNotifications(prefs)
+
+      // Load beneficiaries
+      const beneficiariesData = await getBeneficiaries()
+      setBeneficiaries(beneficiariesData)
     } catch (error: any) {
       toast.error(error.message || 'Failed to load profile data')
     } finally {
@@ -160,7 +165,7 @@ function ProfileContent() {
   })
 
   // Beneficiaries State
-  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>(mockBeneficiaries)
+  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
 
   // Loyalty State
   const [loyaltyData] = useState(mockLoyaltyData)
@@ -237,10 +242,15 @@ function ProfileContent() {
     })
   }
 
-  const handleRemoveBeneficiary = (id: string) => {
+  const handleRemoveBeneficiary = async (id: string) => {
     if (confirm('Are you sure you want to remove this beneficiary?')) {
-      setBeneficiaries(beneficiaries.filter(b => b.id !== id))
-      toast.success('Beneficiary removed')
+      try {
+        await deleteBeneficiary(id)
+        setBeneficiaries(beneficiaries.filter(b => b.id !== id))
+        toast.success('Beneficiary removed')
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to remove beneficiary')
+      }
     }
   }
 

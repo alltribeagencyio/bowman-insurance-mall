@@ -31,10 +31,86 @@ import {
   Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { getUserPolicies, type Policy } from '@/lib/api/policies'
-import { getUserClaims, type Claim } from '@/lib/api/claims'
+import { getDashboardData } from '@/lib/api/dashboard'
 
-// Mock data - will be replaced with API calls
+interface DashboardData {
+  stats: {
+    policies: {
+      total: number
+      active: number
+      expiringSoon: number
+      expired: number
+    }
+    payments: {
+      pendingAmount: number
+      pendingCount: number
+      overdueAmount: number
+      overdueCount: number
+      nextPaymentDate: string | null
+      nextPaymentAmount: number | null
+    }
+    claims: {
+      total: number
+      pending: number
+      approved: number
+      rejected: number
+    }
+  }
+  recentActivity: Array<{
+    id: string
+    type: string
+    title: string
+    description: string
+    timestamp: string
+    icon?: string
+    iconColor?: string
+    bgColor?: string
+  }>
+  recommendations: Array<{
+    id: string
+    priority: string
+    title: string
+    description: string
+    action: string
+    link: string
+  }>
+  upcomingPayments: Array<{
+    id: string
+    policy: {
+      id: string
+      policy_number: string
+      policy_type: string
+    }
+    amount: number
+    due_date: string
+    is_overdue: boolean
+  }>
+  expiringPolicies: Array<{
+    id: string
+    policy_number: string
+    policy_type: string
+    end_date: string
+    days_remaining: number
+  }>
+}
+
+// Helper function to map icon strings to components
+const getIconComponent = (iconName?: string) => {
+  const iconMap: Record<string, any> = {
+    DollarSign,
+    Shield,
+    CheckCircle2,
+    FileText,
+    Bell,
+    Calendar,
+    Activity,
+    CreditCard,
+    AlertCircle,
+  }
+  return iconMap[iconName || 'Activity'] || Activity
+}
+
+// Mock data for fallback - will use real API
 const mockDashboardData = {
   policies: {
     total: 3,
@@ -154,25 +230,27 @@ const mockDashboardData = {
 
 function DashboardContent() {
   const { user } = useAuth()
-  const [policies, setPolicies] = useState<Policy[]>([])
-  const [claims, setClaims] = useState<Claim[]>([])
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [data] = useState(mockDashboardData)
 
-  // Fetch data on mount
+  // Fetch dashboard data on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true)
-        const [policiesData, claimsData] = await Promise.all([
-          getUserPolicies(),
-          getUserClaims()
-        ])
-        setPolicies(policiesData)
-        setClaims(claimsData)
+        const data = await getDashboardData()
+        setDashboardData(data)
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
         toast.error('Failed to load dashboard data. Please refresh the page.')
+        // Use mock data as fallback
+        setDashboardData({
+          stats: mockDashboardData,
+          recentActivity: [],
+          recommendations: [],
+          upcomingPayments: [],
+          expiringPolicies: []
+        })
       } finally {
         setIsLoading(false)
       }
@@ -181,30 +259,16 @@ function DashboardContent() {
     fetchData()
   }, [])
 
-  // Calculate stats from API data
-  const stats = {
-    policies: {
-      total: policies.length,
-      active: policies.filter(p => p.status === 'active').length,
-      expiringSoon: policies.filter(p => {
-        const daysUntilExpiry = Math.floor(
-          (new Date(p.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-        )
-        return daysUntilExpiry <= 30 && daysUntilExpiry > 0
-      }).length,
-      expired: policies.filter(p => p.status === 'expired').length
-    },
-    claims: {
-      total: claims.length,
-      pending: claims.filter(c => c.status === 'submitted' || c.status === 'under_review').length,
-      approved: claims.filter(c => c.status === 'approved').length,
-      rejected: claims.filter(c => c.status === 'rejected').length,
-      settled: claims.filter(c => c.status === 'settled').length
-    },
-    payments: data.payments,
-    wallet: data.wallet,
-    loyalty: data.loyalty
+  // Get data from dashboard or use mock
+  const stats = dashboardData?.stats || {
+    policies: mockDashboardData.policies,
+    payments: mockDashboardData.payments,
+    claims: mockDashboardData.claims
   }
+
+  const recentActivity = dashboardData?.recentActivity || mockDashboardData.recentActivity
+  const recommendations = dashboardData?.recommendations || mockDashboardData.recommendations
+  const upcomingPayments = dashboardData?.upcomingPayments || []
 
   const getTimeAgo = (timestamp: string) => {
     const now = new Date()
@@ -271,9 +335,9 @@ function DashboardContent() {
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">KES {data.wallet.balance.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-blue-600">KES {(0).toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
-                Available for payments
+                Coming soon
               </p>
             </CardContent>
           </Card>
@@ -288,9 +352,9 @@ function DashboardContent() {
               <Award className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{data.loyalty.points.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-purple-600">{(0).toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
-                {data.loyalty.tier} Member
+                Coming soon
               </p>
             </CardContent>
           </Card>
@@ -451,7 +515,7 @@ function DashboardContent() {
           )}
 
           {/* Upcoming Payments */}
-          {data.upcomingPayments.length > 0 && (
+          {upcomingPayments.length > 0 && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -469,27 +533,33 @@ function DashboardContent() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {data.upcomingPayments.map((payment) => (
-                    <div key={payment.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                      <div>
-                        <p className="font-medium">{payment.policyName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Due {new Date(payment.dueDate).toLocaleDateString()}
-                          {payment.daysUntil <= 7 && (
-                            <Badge variant="secondary" className="ml-2">
-                              {payment.daysUntil} day{payment.daysUntil !== 1 ? 's' : ''}
-                            </Badge>
-                          )}
-                        </p>
+                  {upcomingPayments.map((payment) => {
+                    const dueDate = new Date(payment.due_date)
+                    const today = new Date()
+                    const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+                    return (
+                      <div key={payment.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                        <div>
+                          <p className="font-medium">{payment.policy.policy_type}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Due {dueDate.toLocaleDateString()}
+                            {daysUntil <= 7 && (
+                              <Badge variant="secondary" className="ml-2">
+                                {daysUntil} day{daysUntil !== 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">KES {payment.amount.toLocaleString()}</p>
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/payment/${payment.id}`}>Pay</Link>
+                          </Button>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold">KES {payment.amount.toLocaleString()}</p>
-                        <Button size="sm" variant="outline" asChild>
-                          <Link href={`/payment/${payment.id}`}>Pay</Link>
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -516,27 +586,30 @@ function DashboardContent() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {data.recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className={`p-2 rounded-full ${activity.bgColor}`}>
-                        <activity.icon className={`h-4 w-4 ${activity.iconColor}`} />
+                {recentActivity.map((activity) => {
+                  const IconComponent = getIconComponent(activity.icon)
+                  return (
+                    <div key={activity.id} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className={`p-2 rounded-full ${activity.bgColor || 'bg-gray-100 dark:bg-gray-900'}`}>
+                          <IconComponent className={`h-4 w-4 ${activity.iconColor || 'text-gray-600'}`} />
+                        </div>
+                        <div className="w-0.5 h-full bg-border mt-2" />
                       </div>
-                      <div className="w-0.5 h-full bg-border mt-2" />
-                    </div>
-                    <div className="flex-1 pb-6 last:pb-0">
-                      <div className="flex items-start justify-between mb-1">
-                        <p className="font-medium">{activity.title}</p>
-                        <span className="text-xs text-muted-foreground">
-                          {getTimeAgo(activity.timestamp)}
-                        </span>
+                      <div className="flex-1 pb-6 last:pb-0">
+                        <div className="flex items-start justify-between mb-1">
+                          <p className="font-medium">{activity.title}</p>
+                          <span className="text-xs text-muted-foreground">
+                            {getTimeAgo(activity.timestamp)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {activity.description}
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {activity.description}
-                      </p>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -556,7 +629,7 @@ function DashboardContent() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {data.recommendations.map((rec) => (
+              {recommendations.map((rec) => (
                 <div key={rec.id} className="space-y-2">
                   <div className="flex items-start gap-2">
                     {rec.priority === 'high' && (
@@ -578,7 +651,7 @@ function DashboardContent() {
                       </Button>
                     </div>
                   </div>
-                  {rec.id !== data.recommendations[data.recommendations.length - 1].id && (
+                  {rec.id !== recommendations[recommendations.length - 1].id && (
                     <div className="border-b" />
                   )}
                 </div>

@@ -10,8 +10,28 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { useSidebar } from '@/contexts/sidebar-context'
 import { ALL_PRODUCTS } from '@/data/insuranceProducts'
 import { cn } from '@/lib/utils'
+import { getCategories, type PolicyCategory } from '@/lib/api/categories'
 
-// Insurance categories with their plans and companies
+// Helper function to map category icon names to Lucide icon components
+const getCategoryIcon = (iconName: string) => {
+  const iconMap: Record<string, any> = {
+    'Car': Car,
+    'Motor': Car,
+    'Heart': Heart,
+    'Medical': Heart,
+    'Health': Heart,
+    'Plane': Plane,
+    'Travel': Plane,
+    'Building2': Building2,
+    'Business': Building2,
+    'Home': Home,
+    'Users': Users,
+    'Life': Users,
+  }
+  return iconMap[iconName] || Home
+}
+
+// Insurance categories with their plans and companies (FALLBACK)
 const insuranceCategories = [
   {
     id: 'motor',
@@ -93,6 +113,7 @@ export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchExpanded, setSearchExpanded] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [categories, setCategories] = useState<PolicyCategory[]>([])
   const searchRef = useRef<HTMLDivElement>(null)
   const { user, isAuthenticated, logout } = useAuth()
   const { sidebarCollapsed } = useSidebar()
@@ -100,6 +121,20 @@ export function Navbar() {
 
   // Check if we're on a dashboard page (where sidebar is visible)
   const isOnDashboardPage = pathname?.startsWith('/dashboard')
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await getCategories()
+        setCategories(data)
+      } catch (error) {
+        console.error('Failed to load categories:', error)
+        // Fallback to static categories if API fails - keep existing insuranceCategories
+      }
+    }
+    fetchCategories()
+  }, [])
 
   // Close search when clicking outside
   useEffect(() => {
@@ -118,6 +153,18 @@ export function Navbar() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [searchExpanded])
+
+  // Map API categories to navbar format, or use fallback
+  const displayCategories = categories.length > 0
+    ? categories.map(cat => ({
+        id: cat.slug,
+        name: cat.name,
+        icon: getCategoryIcon(cat.icon),
+        href: `/policies/${cat.slug}`,
+        plans: [], // Plans will be loaded from policy types in the future
+        companies: [], // Companies will be loaded from policy types in the future
+      }))
+    : insuranceCategories
 
   // Filter products based on search query
   const searchResults = searchQuery.trim()
@@ -163,7 +210,7 @@ export function Navbar() {
               Mall
             </Link>
 
-            {insuranceCategories.map((category, index) => {
+            {displayCategories.map((category, index) => {
               const Icon = category.icon
               // For Motor and Medical (first two categories), position mega menu to avoid sidebar obstruction
               const isLeftCategory = index <= 1
@@ -189,40 +236,55 @@ export function Navbar() {
                     "absolute top-full mt-2 w-[600px] bg-background border rounded-lg shadow-xl p-6 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none group-hover:pointer-events-auto z-50",
                     megaMenuPositioning
                   )}>
-                    <div className="grid grid-cols-2 gap-6">
+                    {category.plans.length > 0 || category.companies.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-6">
                         {/* Plans Column */}
-                        <div>
-                          <h3 className="font-semibold text-sm mb-3 text-primary">Popular Plans</h3>
-                          <div className="space-y-2">
-                            {category.plans.map((plan, idx) => (
-                              <Link
-                                key={idx}
-                                href={category.href}
-                                className="block p-3 rounded-lg hover:bg-muted transition-colors"
-                              >
-                                <div className="font-medium text-sm">{plan.name}</div>
-                                <div className="text-xs text-muted-foreground">{plan.price}</div>
-                              </Link>
-                            ))}
+                        {category.plans.length > 0 && (
+                          <div>
+                            <h3 className="font-semibold text-sm mb-3 text-primary">Popular Plans</h3>
+                            <div className="space-y-2">
+                              {category.plans.map((plan, idx) => (
+                                <Link
+                                  key={idx}
+                                  href={category.href}
+                                  className="block p-3 rounded-lg hover:bg-muted transition-colors"
+                                >
+                                  <div className="font-medium text-sm">{plan.name}</div>
+                                  <div className="text-xs text-muted-foreground">{plan.price}</div>
+                                </Link>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Companies Column */}
-                        <div>
-                          <h3 className="font-semibold text-sm mb-3 text-primary">Top Insurance Companies</h3>
-                          <div className="space-y-2">
-                            {category.companies.map((company, idx) => (
-                              <Link
-                                key={idx}
-                                href={category.href}
-                                className="block p-3 rounded-lg hover:bg-muted transition-colors text-sm"
-                              >
-                                {company} Insurance
-                              </Link>
-                            ))}
+                        {category.companies.length > 0 && (
+                          <div>
+                            <h3 className="font-semibold text-sm mb-3 text-primary">Top Insurance Companies</h3>
+                            <div className="space-y-2">
+                              {category.companies.map((company, idx) => (
+                                <Link
+                                  key={idx}
+                                  href={category.href}
+                                  className="block p-3 rounded-lg hover:bg-muted transition-colors text-sm"
+                                >
+                                  {company} Insurance
+                                </Link>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Browse our {category.name} insurance products
+                        </p>
+                        <Link href={category.href}>
+                          <Button size="sm">View All Products</Button>
+                        </Link>
+                      </div>
+                    )}
 
                       {/* View All Link */}
                       <div className="border-t mt-4 pt-4">
@@ -423,7 +485,7 @@ export function Navbar() {
             {/* Insurance Categories */}
             <div className="space-y-2">
               <div className="text-xs font-semibold text-muted-foreground px-2 mb-3">INSURANCE PRODUCTS</div>
-              {insuranceCategories.map((category) => {
+              {displayCategories.map((category) => {
                 const Icon = category.icon
                 return (
                   <Link
