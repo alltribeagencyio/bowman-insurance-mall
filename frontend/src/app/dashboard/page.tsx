@@ -101,6 +101,7 @@ const getIconComponent = (iconName?: string) => {
     Shield,
     CheckCircle2,
     FileText,
+    FileCheck,
     Bell,
     Calendar,
     Activity,
@@ -148,7 +149,7 @@ const mockDashboardData = {
       title: 'Payment Received',
       description: 'Premium payment of KES 15,000 for Motor Insurance',
       timestamp: '2026-01-15T10:30:00Z',
-      icon: DollarSign,
+      icon: 'DollarSign',
       iconColor: 'text-green-600',
       bgColor: 'bg-green-100 dark:bg-green-900'
     },
@@ -158,7 +159,7 @@ const mockDashboardData = {
       title: 'Claim Approved',
       description: 'Your claim for KES 450,000 has been approved',
       timestamp: '2026-01-10T14:20:00Z',
-      icon: CheckCircle2,
+      icon: 'CheckCircle2',
       iconColor: 'text-blue-600',
       bgColor: 'bg-blue-100 dark:bg-blue-900'
     },
@@ -168,7 +169,7 @@ const mockDashboardData = {
       title: 'Policy Activated',
       description: 'Medical Insurance Plus is now active',
       timestamp: '2026-01-15T09:00:00Z',
-      icon: Shield,
+      icon: 'Shield',
       iconColor: 'text-purple-600',
       bgColor: 'bg-purple-100 dark:bg-purple-900'
     },
@@ -178,7 +179,7 @@ const mockDashboardData = {
       title: 'Document Uploaded',
       description: 'Insurance Certificate added to your documents',
       timestamp: '2026-01-15T10:35:00Z',
-      icon: FileCheck,
+      icon: 'FileCheck',
       iconColor: 'text-amber-600',
       bgColor: 'bg-amber-100 dark:bg-amber-900'
     }
