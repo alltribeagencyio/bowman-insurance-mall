@@ -67,10 +67,17 @@ class PolicyCategory(models.Model):
 class PolicyType(models.Model):
     """Policy templates/types offered by insurance companies"""
 
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('published', 'Published'),
+        ('delisted', 'Delisted'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     category = models.ForeignKey(PolicyCategory, on_delete=models.PROTECT, related_name='policy_types')
     insurance_company = models.ForeignKey(InsuranceCompany, on_delete=models.CASCADE, related_name='policy_types')
     name = models.CharField(max_length=200, db_index=True)
+    slug = models.SlugField(max_length=250, unique=True, blank=True, help_text='Auto-generated from name')
     description = models.TextField()
     base_premium = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
 
@@ -79,6 +86,7 @@ class PolicyType(models.Model):
     features = models.JSONField(default=list, help_text='List of features')
     exclusions = models.JSONField(default=list, help_text='List of exclusions')
     requirements = models.JSONField(default=dict, help_text='Required fields for quote/purchase')
+    terms_and_conditions = models.TextField(blank=True, help_text='Terms and conditions')
 
     # Policy terms
     min_coverage_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
@@ -86,6 +94,8 @@ class PolicyType(models.Model):
     min_age = models.IntegerField(null=True, blank=True)
     max_age = models.IntegerField(null=True, blank=True)
 
+    # Status and visibility
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', db_index=True, help_text='Draft policies are hidden from frontend')
     is_active = models.BooleanField(default=True, db_index=True)
     is_featured = models.BooleanField(default=False, help_text='Show in featured policies')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -97,7 +107,20 @@ class PolicyType(models.Model):
         indexes = [
             models.Index(fields=['category', 'is_active']),
             models.Index(fields=['insurance_company', 'is_active']),
+            models.Index(fields=['status']),
         ]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            from django.utils.text import slugify
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            while PolicyType.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} - {self.insurance_company.name}"

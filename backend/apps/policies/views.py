@@ -58,7 +58,7 @@ class PolicyTypeViewSet(viewsets.ReadOnlyModelViewSet):
     GET /api/v1/policies/types/
     GET /api/v1/policies/types/:id/
     """
-    queryset = PolicyType.objects.filter(is_active=True).select_related(
+    queryset = PolicyType.objects.filter(is_active=True, status='published').select_related(
         'category', 'insurance_company'
     )
     permission_classes = [AllowAny]

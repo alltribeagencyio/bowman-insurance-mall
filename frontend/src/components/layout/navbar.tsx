@@ -196,9 +196,9 @@ export function Navbar() {
               <Image
                 src="/bowman-logo.jpeg"
                 alt="Bowman Insurance"
-                width={120}
-                height={40}
-                className="h-8 w-auto object-contain"
+                width={160}
+                height={50}
+                className="h-11 w-auto object-contain"
                 priority
               />
             </Link>

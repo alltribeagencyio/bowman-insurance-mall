@@ -13,14 +13,15 @@ export function Footer() {
   const { sidebarCollapsed } = useSidebar()
   const pathname = usePathname()
 
-  // Check if we're on a dashboard page (where sidebar is visible)
+  // Check if we're on a dashboard or admin page (where sidebar is visible)
   const isOnDashboardPage = pathname?.startsWith('/dashboard')
+  const isOnAdminPage = pathname?.startsWith('/admin')
 
   return (
     <footer className={cn(
       "border-t bg-muted/50 transition-all duration-300",
-      isAuthenticated && isOnDashboardPage && !sidebarCollapsed && "lg:pl-64",
-      isAuthenticated && isOnDashboardPage && sidebarCollapsed && "lg:pl-20"
+      isAuthenticated && (isOnDashboardPage || isOnAdminPage) && !sidebarCollapsed && "lg:pl-64",
+      isAuthenticated && (isOnDashboardPage || isOnAdminPage) && sidebarCollapsed && "lg:pl-20"
     )}>
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -30,9 +31,9 @@ export function Footer() {
               <Image
                 src="/bowman-logo.jpeg"
                 alt="Bowman Insurance"
-                width={120}
-                height={40}
-                className="h-8 w-auto object-contain"
+                width={160}
+                height={50}
+                className="h-11 w-auto object-contain"
               />
             </Link>
             <p className="text-sm text-muted-foreground">
