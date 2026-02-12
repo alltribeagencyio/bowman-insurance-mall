@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -191,8 +192,15 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo - Hide only when on dashboard pages where sidebar is visible */}
           {!(isAuthenticated && isOnDashboardPage) && (
-            <Link href="/">
-              <span className="text-2xl font-bold text-primary">Bowman</span>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/bowman-logo.jpeg"
+                alt="Bowman Insurance"
+                width={120}
+                height={40}
+                className="h-8 w-auto object-contain"
+                priority
+              />
             </Link>
           )}
 

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -25,10 +26,15 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-full bg-primary" />
-              <span className="text-lg font-bold">Bowman Insurance</span>
-            </div>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/bowman-logo.jpeg"
+                alt="Bowman Insurance"
+                width={120}
+                height={40}
+                className="h-8 w-auto object-contain"
+              />
+            </Link>
             <p className="text-sm text-muted-foreground">
               Your trusted insurance partner in Kenya. Providing comprehensive coverage for all your needs.
             </p>
