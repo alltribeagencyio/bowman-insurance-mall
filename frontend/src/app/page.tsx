@@ -87,6 +87,12 @@ export default function Home() {
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-12">
+              <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">No Categories Available</h3>
+              <p className="text-muted-foreground">Categories will appear here once they are added.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-6xl mx-auto">
               {categories.map((category) => {
@@ -120,6 +126,15 @@ export default function Home() {
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : featuredPolicies.length === 0 ? (
+            <div className="text-center py-12">
+              <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">No Featured Policies Available</h3>
+              <p className="text-muted-foreground mb-4">Featured policies will appear here once they are added to the system.</p>
+              <Button asChild>
+                <Link href="/policies">Browse All Policies</Link>
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
