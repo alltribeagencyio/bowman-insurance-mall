@@ -107,6 +107,103 @@ class PolicyTypeViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(featured_policies, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['post'])
+    def quote(self, request):
+        """
+        Generate premium quote for a policy type
+        POST /api/v1/policies/types/quote/
+        Body: {policy_type_id, coverage_amount, start_date, payment_frequency}
+        """
+        from decimal import Decimal
+
+        policy_type_id = request.data.get('policy_type_id')
+        coverage_amount = request.data.get('coverage_amount')
+        start_date = request.data.get('start_date')
+        payment_frequency = request.data.get('payment_frequency', 'annually')
+
+        if not all([policy_type_id, coverage_amount, start_date]):
+            return Response({
+                'error': 'policy_type_id, coverage_amount, and start_date are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            policy_type = PolicyType.objects.select_related(
+                'insurance_company', 'category'
+            ).get(id=policy_type_id, is_active=True)
+        except PolicyType.DoesNotExist:
+            return Response({
+                'error': 'Policy type not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Calculate premium based on base premium and coverage amount
+        base_premium = Decimal(str(policy_type.base_premium))
+        coverage = Decimal(str(coverage_amount))
+
+        # Simple calculation: base premium + (coverage amount / 100000 * adjustment factor)
+        # This is a simplified model - in production, use actuarial formulas
+        coverage_factor = coverage / Decimal('1000000')  # Per million coverage
+        calculated_premium = base_premium * (Decimal('1') + coverage_factor)
+
+        # Apply frequency discount
+        frequency_multipliers = {
+            'monthly': Decimal('1.05'),  # 5% more expensive for monthly
+            'quarterly': Decimal('1.02'),  # 2% more expensive
+            'semi-annual': Decimal('1.01'),  # 1% more expensive
+            'annually': Decimal('1.00')  # Base rate
+        }
+        multiplier = frequency_multipliers.get(payment_frequency, Decimal('1.00'))
+        calculated_premium = calculated_premium * multiplier
+
+        # Calculate taxes and fees (Kenya has 16% VAT on insurance)
+        taxes = calculated_premium * Decimal('0.16')
+        fees = Decimal('500')  # Processing fees
+        total_premium = calculated_premium + taxes + fees
+
+        # Calculate per-payment amount
+        payments_per_year = {
+            'monthly': 12,
+            'quarterly': 4,
+            'semi-annual': 2,
+            'annually': 1
+        }
+        num_payments = payments_per_year.get(payment_frequency, 1)
+        per_payment = total_premium / Decimal(str(num_payments))
+
+        # Generate payment options
+        payment_options = []
+        for freq, periods in payments_per_year.items():
+            freq_mult = frequency_multipliers.get(freq, Decimal('1.00'))
+            freq_premium = base_premium * (Decimal('1') + coverage_factor) * freq_mult
+            freq_taxes = freq_premium * Decimal('0.16')
+            freq_total = freq_premium + freq_taxes + fees
+            freq_per_payment = freq_total / Decimal(str(periods))
+
+            payment_options.append({
+                'frequency': freq,
+                'amount': str(round(freq_per_payment, 2)),
+                'description': f'{periods} payment(s) per year'
+            })
+
+        # Quote valid for 30 days
+        from datetime import datetime, timedelta
+        valid_until = (datetime.now() + timedelta(days=30)).isoformat()
+
+        return Response({
+            'policy_type': {
+                'id': str(policy_type.id),
+                'name': policy_type.name
+            },
+            'coverage_amount': str(coverage),
+            'base_premium': str(base_premium),
+            'taxes': str(round(taxes, 2)),
+            'fees': str(fees),
+            'total_premium': str(round(total_premium, 2)),
+            'payment_options': payment_options,
+            'selected_frequency': payment_frequency,
+            'amount_per_payment': str(round(per_payment, 2)),
+            'valid_until': valid_until
+        })
+
 
 class PolicyViewSet(viewsets.ModelViewSet):
     """

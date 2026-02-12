@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
-from .models import User, NotificationPreference
+from .models import User, NotificationPreference, Beneficiary
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -108,3 +108,40 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationPreference
         exclude = ('id', 'user', 'created_at', 'updated_at')
+
+
+class BeneficiarySerializer(serializers.ModelSerializer):
+    """Serializer for beneficiaries"""
+
+    class Meta:
+        model = Beneficiary
+        fields = (
+            'id', 'name', 'relationship', 'percentage', 'phone', 'email',
+            'date_of_birth', 'national_id', 'is_primary', 'created_at', 'updated_at'
+        )
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+    def validate_percentage(self, value):
+        """Validate percentage is between 0 and 100"""
+        if value < 0 or value > 100:
+            raise serializers.ValidationError("Percentage must be between 0 and 100")
+        return value
+
+    def validate(self, attrs):
+        """Validate total percentage doesn't exceed 100"""
+        user = self.context['request'].user
+        percentage = attrs.get('percentage', 0)
+
+        # Get existing beneficiaries (excluding current one if updating)
+        existing = Beneficiary.objects.filter(user=user)
+        if self.instance:
+            existing = existing.exclude(id=self.instance.id)
+
+        total_existing = sum(b.percentage for b in existing)
+
+        if total_existing + percentage > 100:
+            raise serializers.ValidationError({
+                'percentage': f'Total percentage cannot exceed 100%. Current total: {total_existing}%'
+            })
+
+        return attrs

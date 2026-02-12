@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     UserRegistrationView,
@@ -7,12 +8,16 @@ from .views import (
     UserProfileView,
     PasswordChangeView,
     NotificationPreferenceView,
+    BeneficiaryViewSet,
     request_password_reset,
     reset_password,
     verify_token,
 )
 
 app_name = 'users'
+
+router = DefaultRouter()
+router.register(r'beneficiaries', BeneficiaryViewSet, basename='beneficiary')
 
 urlpatterns = [
     # Authentication
@@ -30,4 +35,7 @@ urlpatterns = [
     # User Profile
     path('profile/', UserProfileView.as_view(), name='profile'),
     path('notification-preferences/', NotificationPreferenceView.as_view(), name='notification_preferences'),
+
+    # Beneficiaries (router URLs)
+    path('', include(router.urls)),
 ]

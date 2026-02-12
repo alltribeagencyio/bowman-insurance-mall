@@ -1,5 +1,5 @@
-from rest_framework import status, generics, permissions
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework import status, generics, permissions, viewsets
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -11,9 +11,10 @@ from .serializers import (
     UserSerializer,
     UserProfileUpdateSerializer,
     PasswordChangeSerializer,
-    NotificationPreferenceSerializer
+    NotificationPreferenceSerializer,
+    BeneficiarySerializer
 )
-from .models import NotificationPreference
+from .models import NotificationPreference, Beneficiary
 
 User = get_user_model()
 
@@ -245,3 +246,43 @@ def verify_token(request):
         'user': UserSerializer(request.user).data,
         'message': 'Token is valid'
     }, status=status.HTTP_200_OK)
+
+
+class BeneficiaryViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing beneficiaries
+    GET /api/v1/auth/beneficiaries/ - List beneficiaries
+    POST /api/v1/auth/beneficiaries/ - Create beneficiary
+    GET /api/v1/auth/beneficiaries/:id/ - Get beneficiary details
+    PATCH /api/v1/auth/beneficiaries/:id/ - Update beneficiary
+    DELETE /api/v1/auth/beneficiaries/:id/ - Delete beneficiary
+    POST /api/v1/auth/beneficiaries/:id/set-primary/ - Set as primary
+    """
+    serializer_class = BeneficiarySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return beneficiaries for the current user"""
+        return Beneficiary.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        """Set the user when creating a beneficiary"""
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def set_primary(self, request, pk=None):
+        """Set a beneficiary as primary"""
+        beneficiary = self.get_object()
+
+        # Unset all other primary beneficiaries for this user
+        Beneficiary.objects.filter(
+            user=request.user,
+            is_primary=True
+        ).update(is_primary=False)
+
+        # Set this one as primary
+        beneficiary.is_primary = True
+        beneficiary.save()
+
+        serializer = self.get_serializer(beneficiary)
+        return Response(serializer.data)

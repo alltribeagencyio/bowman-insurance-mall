@@ -126,3 +126,49 @@ class NotificationPreference(models.Model):
 
     def __str__(self):
         return f"Notification preferences for {self.user.email}"
+
+
+class Beneficiary(models.Model):
+    """Policy beneficiaries"""
+
+    RELATIONSHIP_CHOICES = [
+        ('spouse', 'Spouse'),
+        ('child', 'Child'),
+        ('parent', 'Parent'),
+        ('sibling', 'Sibling'),
+        ('friend', 'Friend'),
+        ('other', 'Other'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='beneficiaries')
+
+    # Beneficiary details
+    name = models.CharField(max_length=255)
+    relationship = models.CharField(max_length=20, choices=RELATIONSHIP_CHOICES)
+    percentage = models.DecimalField(max_digits=5, decimal_places=2, help_text='Percentage share (0-100)')
+    phone = models.CharField(max_length=20)
+    email = models.EmailField()
+
+    # Optional details
+    date_of_birth = models.DateField(null=True, blank=True)
+    national_id = models.CharField(max_length=50, blank=True, null=True)
+    is_primary = models.BooleanField(default=False)
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'beneficiaries'
+        ordering = ['-is_primary', '-created_at']
+        verbose_name_plural = 'Beneficiaries'
+
+    def __str__(self):
+        return f"{self.name} ({self.relationship}) - {self.user.email}"
+
+    def save(self, *args, **kwargs):
+        # If this is set as primary, unset all other primary beneficiaries for this user
+        if self.is_primary:
+            Beneficiary.objects.filter(user=self.user, is_primary=True).update(is_primary=False)
+        super().save(*args, **kwargs)
