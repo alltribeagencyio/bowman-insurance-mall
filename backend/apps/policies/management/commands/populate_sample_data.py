@@ -447,13 +447,15 @@ class Command(BaseCommand):
                     **data,
                     'features': features,
                     'exclusions': exclusions,
+                    'status': 'published',  # Make policies visible on frontend
                 }
             )
 
             if not created:
-                # Update features and exclusions if already exists
+                # Update features, exclusions, and status if already exists
                 policy_type.features = features
                 policy_type.exclusions = exclusions
+                policy_type.status = 'published'
                 policy_type.save()
 
             policy_types.append(policy_type)
