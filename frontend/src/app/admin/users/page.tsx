@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
+import { getAllUsers } from '@/lib/api/admin'
 import {
   Select,
   SelectContent,
@@ -126,9 +128,9 @@ const mockUsers: User[] = [
 ]
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(mockUsers)
-  const [filteredUsers, setFilteredUsers] = useState<User[]>(mockUsers)
-  const [isLoading, setIsLoading] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -136,9 +138,33 @@ export default function UsersPage() {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
+  // Load users from API on mount
+  useEffect(() => {
+    loadUsers()
+  }, [])
+
   useEffect(() => {
     filterUsers()
   }, [searchQuery, roleFilter, statusFilter, users])
+
+  const loadUsers = async () => {
+    setIsLoading(true)
+    try {
+      const response = await getAllUsers({
+        search: searchQuery || undefined,
+        role: roleFilter !== 'all' ? roleFilter : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined
+      })
+      setUsers(response.results)
+    } catch (error: any) {
+      console.error('Failed to load users:', error)
+      toast.error('Failed to load users')
+      // Fallback to mock data on error
+      setUsers(mockUsers)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const filterUsers = () => {
     let filtered = users

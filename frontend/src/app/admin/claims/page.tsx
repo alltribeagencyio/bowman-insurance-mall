@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { toast } from 'sonner'
+import { getAllClaims } from '@/lib/api/admin'
 import {
   Select,
   SelectContent,
@@ -156,13 +158,34 @@ const mockClaims: Claim[] = [
 ]
 
 export default function ClaimsPage() {
-  const [claims, setClaims] = useState<Claim[]>(mockClaims)
+  const [claims, setClaims] = useState<Claim[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null)
   const [isActionModalOpen, setIsActionModalOpen] = useState(false)
   const [action, setAction] = useState<'approve' | 'reject' | 'assign' | null>(null)
   const [actionReason, setActionReason] = useState('')
   const [assessorName, setAssessorName] = useState('')
+
+  // Load claims from API on mount
+  useEffect(() => {
+    loadClaims()
+  }, [])
+
+  const loadClaims = async () => {
+    setIsLoading(true)
+    try {
+      const response = await getAllClaims()
+      setClaims(response.results)
+    } catch (error: any) {
+      console.error('Failed to load claims:', error)
+      toast.error('Failed to load claims')
+      // Fallback to mock data on error
+      setClaims(mockClaims)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const filterClaims = (status?: string) => {
     let filtered = claims
