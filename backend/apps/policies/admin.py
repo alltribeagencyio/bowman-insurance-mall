@@ -6,16 +6,17 @@ from .models import InsuranceCompany, PolicyCategory, PolicyType, Policy, Policy
 class InsuranceCompanyAdmin(admin.ModelAdmin):
     """Admin interface for InsuranceCompany model"""
 
-    list_display = ('name', 'code', 'is_active', 'rating', 'total_policies', 'created_at')
+    list_display = ('name', 'is_active', 'rating', 'created_at')
     list_filter = ('is_active', 'created_at')
-    search_fields = ('name', 'code', 'email')
+    search_fields = ('name', 'contact_email', 'contact_phone')
     readonly_fields = ('created_at', 'updated_at')
+    list_editable = ('is_active',)
 
     fieldsets = (
-        (None, {'fields': ('name', 'code', 'logo')}),
-        ('Contact Information', {'fields': ('email', 'phone', 'website', 'address')}),
-        ('Status & Rating', {'fields': ('is_active', 'rating', 'total_policies')}),
-        ('Description', {'fields': ('description',)}),
+        (None, {'fields': ('name', 'logo')}),
+        ('Contact Information', {'fields': ('contact_email', 'contact_phone', 'website')}),
+        ('Details', {'fields': ('description', 'rating')}),
+        ('Status', {'fields': ('is_active',)}),
         ('Timestamps', {'fields': ('created_at', 'updated_at')}),
     )
 
@@ -24,11 +25,12 @@ class InsuranceCompanyAdmin(admin.ModelAdmin):
 class PolicyCategoryAdmin(admin.ModelAdmin):
     """Admin interface for PolicyCategory model"""
 
-    list_display = ('name', 'slug', 'display_order', 'is_active', 'created_at')
+    list_display = ('name', 'slug', 'icon', 'display_order', 'is_active', 'created_at')
     list_filter = ('is_active', 'created_at')
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
     readonly_fields = ('created_at', 'updated_at')
+    list_editable = ('display_order', 'is_active')
 
     fieldsets = (
         (None, {'fields': ('name', 'slug', 'icon')}),
@@ -42,63 +44,118 @@ class PolicyCategoryAdmin(admin.ModelAdmin):
 class PolicyTypeAdmin(admin.ModelAdmin):
     """Admin interface for PolicyType model"""
 
-    list_display = ('name', 'category', 'company', 'premium_amount', 'is_active', 'created_at')
-    list_filter = ('category', 'company', 'is_active', 'created_at')
-    search_fields = ('name', 'company__name', 'category__name')
-    readonly_fields = ('created_at', 'updated_at')
+    list_display = ('name', 'category', 'insurance_company', 'base_premium', 'status', 'is_featured', 'is_active', 'created_at')
+    list_filter = ('status', 'category', 'insurance_company', 'is_featured', 'is_active', 'created_at')
+    search_fields = ('name', 'slug', 'description', 'insurance_company__name', 'category__name')
+    readonly_fields = ('slug', 'created_at', 'updated_at')
+    list_editable = ('status', 'is_featured', 'is_active')
+    prepopulated_fields = {}  # slug is auto-generated
 
     fieldsets = (
-        (None, {'fields': ('name', 'category', 'company')}),
-        ('Description', {'fields': ('description', 'short_description')}),
-        ('Pricing', {'fields': ('premium_amount', 'currency')}),
-        ('Coverage Details', {'fields': ('coverage_amount', 'coverage_details', 'features', 'exclusions')}),
-        ('Requirements', {'fields': ('requirements',)}),
-        ('Status', {'fields': ('is_active',)}),
-        ('Timestamps', {'fields': ('created_at', 'updated_at')}),
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'category', 'insurance_company', 'description')
+        }),
+        ('Pricing & Coverage', {
+            'fields': ('base_premium', 'min_coverage_amount', 'max_coverage_amount')
+        }),
+        ('Policy Details', {
+            'fields': ('coverage_details', 'features', 'exclusions', 'requirements', 'terms_and_conditions'),
+            'classes': ('collapse',)
+        }),
+        ('Age Requirements', {
+            'fields': ('min_age', 'max_age'),
+            'classes': ('collapse',)
+        }),
+        ('Status & Visibility', {
+            'fields': ('status', 'is_active', 'is_featured')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
     )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('category', 'insurance_company')
+
+    actions = ['make_published', 'make_draft', 'make_delisted', 'make_featured']
+
+    def make_published(self, request, queryset):
+        updated = queryset.update(status='published')
+        self.message_user(request, f'{updated} policy types set to Published.')
+    make_published.short_description = "Set status to Published"
+
+    def make_draft(self, request, queryset):
+        updated = queryset.update(status='draft')
+        self.message_user(request, f'{updated} policy types set to Draft.')
+    make_draft.short_description = "Set status to Draft"
+
+    def make_delisted(self, request, queryset):
+        updated = queryset.update(status='delisted')
+        self.message_user(request, f'{updated} policy types set to Delisted.')
+    make_delisted.short_description = "Set status to Delisted"
+
+    def make_featured(self, request, queryset):
+        updated = queryset.update(is_featured=True)
+        self.message_user(request, f'{updated} policy types marked as Featured.')
+    make_featured.short_description = "Mark as Featured"
 
 
 @admin.register(Policy)
 class PolicyAdmin(admin.ModelAdmin):
     """Admin interface for Policy model"""
 
-    list_display = ('policy_number', 'user', 'policy_type', 'status', 'premium_amount', 'start_date', 'end_date')
-    list_filter = ('status', 'policy_type__category', 'start_date', 'end_date', 'created_at')
+    list_display = ('policy_number', 'user', 'policy_type', 'status', 'premium_amount', 'start_date', 'end_date', 'created_at')
+    list_filter = ('status', 'policy_type__category', 'payment_frequency', 'start_date', 'end_date', 'created_at')
     search_fields = ('policy_number', 'user__email', 'user__first_name', 'user__last_name')
     readonly_fields = ('policy_number', 'created_at', 'updated_at')
     date_hierarchy = 'start_date'
 
     fieldsets = (
-        (None, {'fields': ('policy_number', 'user', 'policy_type')}),
-        ('Policy Details', {'fields': ('status', 'premium_amount', 'coverage_amount', 'currency')}),
-        ('Dates', {'fields': ('start_date', 'end_date', 'issued_at', 'activated_at', 'cancelled_at')}),
-        ('Payment', {'fields': ('payment_frequency', 'auto_renewal')}),
-        ('Additional Data', {'fields': ('policy_data', 'beneficiaries', 'terms_conditions')}),
-        ('Cancellation', {'fields': ('cancellation_reason',)}),
-        ('Timestamps', {'fields': ('created_at', 'updated_at')}),
+        ('Policy Identification', {
+            'fields': ('policy_number', 'user', 'policy_type', 'insurance_company')
+        }),
+        ('Policy Details', {
+            'fields': ('status', 'premium_amount', 'coverage_amount', 'payment_frequency')
+        }),
+        ('Dates', {
+            'fields': ('start_date', 'end_date')
+        }),
+        ('Documents', {
+            'fields': ('certificate_url', 'policy_document_url'),
+            'classes': ('collapse',)
+        }),
+        ('Additional Information', {
+            'fields': ('policy_data', 'beneficiaries'),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
     )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('user', 'policy_type', 'policy_type__company', 'policy_type__category')
+        return qs.select_related('user', 'policy_type', 'insurance_company', 'policy_type__category')
 
 
 @admin.register(PolicyReview)
 class PolicyReviewAdmin(admin.ModelAdmin):
     """Admin interface for PolicyReview model"""
 
-    list_display = ('policy', 'user', 'rating', 'is_verified', 'created_at')
-    list_filter = ('rating', 'is_verified', 'created_at')
-    search_fields = ('policy__policy_number', 'user__email', 'comment')
+    list_display = ('user', 'policy_type', 'rating', 'created_at')
+    list_filter = ('rating', 'created_at')
+    search_fields = ('user__email', 'policy_type__name', 'review')
     readonly_fields = ('created_at', 'updated_at')
 
     fieldsets = (
-        (None, {'fields': ('policy', 'user', 'rating')}),
-        ('Review Content', {'fields': ('comment',)}),
-        ('Status', {'fields': ('is_verified',)}),
+        (None, {'fields': ('user', 'policy_type', 'rating')}),
+        ('Review Content', {'fields': ('review',)}),
         ('Timestamps', {'fields': ('created_at', 'updated_at')}),
     )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('policy', 'user', 'policy__policy_type')
+        return qs.select_related('user', 'policy_type')

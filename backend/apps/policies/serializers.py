@@ -52,10 +52,10 @@ class PolicyTypeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = PolicyType
         fields = [
-            'id', 'name', 'category_name', 'company_name',
+            'id', 'name', 'slug', 'category_name', 'company_name',
             'company_logo', 'company_rating', 'base_premium',
             'min_coverage_amount', 'max_coverage_amount',
-            'is_featured', 'features'
+            'is_featured', 'features', 'status'
         ]
 
 
@@ -67,14 +67,14 @@ class PolicyTypeDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = PolicyType
         fields = [
-            'id', 'category', 'insurance_company', 'name',
+            'id', 'category', 'insurance_company', 'name', 'slug',
             'description', 'base_premium', 'coverage_details',
-            'features', 'exclusions', 'requirements',
+            'features', 'exclusions', 'requirements', 'terms_and_conditions',
             'min_coverage_amount', 'max_coverage_amount',
-            'min_age', 'max_age', 'is_active', 'is_featured',
+            'min_age', 'max_age', 'status', 'is_active', 'is_featured',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
 
 
 class PolicySerializer(serializers.ModelSerializer):
