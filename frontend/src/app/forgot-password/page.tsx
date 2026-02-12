@@ -5,17 +5,30 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Mail } from 'lucide-react'
+import { ArrowLeft, Mail, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { requestPasswordReset } from '@/lib/api/auth'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement password reset logic
-    console.log('Password reset requested for:', email)
-    setIsSubmitted(true)
+
+    try {
+      setIsSubmitting(true)
+      await requestPasswordReset({ email })
+      setIsSubmitted(true)
+      toast.success('Password reset email sent successfully!')
+    } catch (error: any) {
+      console.error('Password reset error:', error)
+      const errorMessage = error?.response?.data?.message || 'Failed to send reset email. Please try again.'
+      toast.error(errorMessage)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -58,8 +71,15 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" size="lg">
-                  Send Reset Link
+                <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    'Send Reset Link'
+                  )}
                 </Button>
 
                 <div className="text-center text-sm text-muted-foreground">

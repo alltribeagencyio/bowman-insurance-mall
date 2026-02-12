@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProtectedRoute } from '@/components/auth/protected-route'
+import { getUserDocuments, uploadDocument, downloadDocument, deleteDocument, Document as APIDocument } from '@/lib/api/documents'
 
 interface Document {
   id: string
@@ -33,62 +34,41 @@ interface Document {
   verified: boolean
 }
 
-// Mock data
-const mockDocuments: Document[] = [
-  {
-    id: '1',
-    name: 'Motor Insurance Certificate',
-    type: 'certificate',
-    file_type: 'PDF',
-    size: 245600,
-    policy_number: 'POL-2026-001234',
-    uploaded_date: '2026-01-15T10:30:00Z',
-    verified: true
-  },
-  {
-    id: '2',
-    name: 'Premium Payment Receipt',
-    type: 'receipt',
-    file_type: 'PDF',
-    size: 128000,
-    policy_number: 'POL-2026-001234',
-    uploaded_date: '2026-01-15T14:20:00Z',
-    verified: true
-  },
-  {
-    id: '3',
-    name: 'National ID Copy',
-    type: 'id',
-    file_type: 'JPG',
-    size: 512000,
-    uploaded_date: '2026-01-10T09:15:00Z',
-    verified: true
-  },
-  {
-    id: '4',
-    name: 'Medical Insurance Certificate',
-    type: 'certificate',
-    file_type: 'PDF',
-    size: 298000,
-    policy_number: 'POL-2026-001235',
-    uploaded_date: '2026-01-20T11:45:00Z',
-    verified: true
-  },
-  {
-    id: '5',
-    name: 'Vehicle Registration',
-    type: 'other',
-    file_type: 'PDF',
-    size: 189000,
-    uploaded_date: '2026-01-12T16:30:00Z',
-    verified: false
-  }
-]
-
 function DocumentsContent() {
-  const [documents, setDocuments] = useState<Document[]>(mockDocuments)
+  const [documents, setDocuments] = useState<Document[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [isLoading, setIsLoading] = useState(true)
+  const [uploadProgress, setUploadProgress] = useState<number>(0)
+  const [isUploading, setIsUploading] = useState(false)
+
+  // Load documents on mount
+  useEffect(() => {
+    loadDocuments()
+  }, [])
+
+  const loadDocuments = async () => {
+    try {
+      setIsLoading(true)
+      const data = await getUserDocuments()
+      // Transform API documents to local format
+      const transformedDocs: Document[] = data.map(doc => ({
+        id: doc.id,
+        name: doc.name,
+        type: doc.type,
+        file_type: doc.file_type,
+        size: doc.size,
+        policy_number: doc.policy?.policy_number,
+        uploaded_date: doc.uploaded_at,
+        verified: doc.verified
+      }))
+      setDocuments(transformedDocs)
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load documents')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const getDocumentIcon = (type: string, file_type: string) => {
     if (file_type.toLowerCase().includes('jpg') || file_type.toLowerCase().includes('png')) {
@@ -113,29 +93,90 @@ function DocumentsContent() {
   }
 
   const handleUpload = () => {
-    toast.success('Upload dialog will open')
-    // TODO: Implement file upload
+    // Create file input element
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.pdf,.jpg,.jpeg,.png'
+    input.multiple = false
+
+    input.onchange = async (e: Event) => {
+      const target = e.target as HTMLInputElement
+      const file = target.files?.[0]
+
+      if (!file) return
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB')
+        return
+      }
+
+      try {
+        setIsUploading(true)
+        setUploadProgress(0)
+
+        // Determine document type from file name or prompt user
+        const type = 'other' // You can add a dialog to let user select type
+
+        await uploadDocument(file, type, undefined, (progress) => {
+          setUploadProgress(progress)
+        })
+
+        toast.success('Document uploaded successfully')
+        await loadDocuments() // Reload documents
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to upload document')
+      } finally {
+        setIsUploading(false)
+        setUploadProgress(0)
+      }
+    }
+
+    input.click()
   }
 
-  const handleDownload = (docId: string, docName: string) => {
-    toast.success(`Downloading ${docName}`)
-    // TODO: Implement actual download
+  const handleDownload = async (docId: string, docName: string) => {
+    try {
+      toast.loading('Downloading...', { id: 'download' })
+      const blob = await downloadDocument(docId)
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = docName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast.success('Download started', { id: 'download' })
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to download document', { id: 'download' })
+    }
   }
 
   const handlePreview = (docId: string) => {
-    toast.success('Preview will open')
-    // TODO: Implement preview modal
+    toast.info('Preview feature coming soon')
+    // TODO: Implement preview modal with document viewer
   }
 
   const handleEmail = (docId: string) => {
-    toast.success('Document sent to your email')
+    toast.info('Email feature coming soon')
     // TODO: Implement email functionality
   }
 
-  const handleDelete = (docId: string) => {
-    if (confirm('Are you sure you want to delete this document?')) {
+  const handleDelete = async (docId: string) => {
+    if (!confirm('Are you sure you want to delete this document?')) {
+      return
+    }
+
+    try {
+      await deleteDocument(docId)
       setDocuments(documents.filter(doc => doc.id !== docId))
-      toast.success('Document deleted')
+      toast.success('Document deleted successfully')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete document')
     }
   }
 
@@ -172,6 +213,17 @@ function DocumentsContent() {
     verified: documents.filter(d => d.verified).length
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading documents...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       {/* Header */}
@@ -182,11 +234,31 @@ function DocumentsContent() {
             Manage all your insurance documents in one place
           </p>
         </div>
-        <Button onClick={handleUpload} size="lg">
+        <Button onClick={handleUpload} size="lg" disabled={isUploading}>
           <Upload className="w-4 h-4 mr-2" />
-          Upload Document
+          {isUploading ? `Uploading... ${uploadProgress}%` : 'Upload Document'}
         </Button>
       </div>
+
+      {/* Upload Progress */}
+      {isUploading && (
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Uploading document...</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">

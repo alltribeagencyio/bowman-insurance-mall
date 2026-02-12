@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
 import { ProtectedRoute } from '@/components/auth/protected-route'
+import { getProfile } from '@/lib/api/auth'
+import { updateUserProfile, changePassword, getNotificationPreferences, updateNotificationPreferences } from '@/lib/api/profile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -107,6 +109,7 @@ function ProfileContent() {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('personal')
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingData, setIsLoadingData] = useState(true)
 
   // Handle tab query parameter
   useEffect(() => {
@@ -122,6 +125,32 @@ function ProfileContent() {
     last_name: user?.last_name || '',
     phone: user?.phone || '',
   })
+
+  // Load user profile and preferences on mount
+  useEffect(() => {
+    loadUserData()
+  }, [])
+
+  const loadUserData = async () => {
+    try {
+      setIsLoadingData(true)
+      // Load profile
+      const profile = await getProfile()
+      setFormData({
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        phone: profile.phone_number,
+      })
+
+      // Load notification preferences
+      const prefs = await getNotificationPreferences()
+      setNotifications(prefs)
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load profile data')
+    } finally {
+      setIsLoadingData(false)
+    }
+  }
 
   // Password Change State
   const [passwordData, setPasswordData] = useState({
@@ -156,7 +185,8 @@ function ProfileContent() {
     setIsLoading(true)
 
     try {
-      await updateProfile(formData)
+      await updateUserProfile(formData)
+      await updateProfile(formData) // Update auth context
       toast.success('Profile updated successfully!')
     } catch (error: any) {
       toast.error(error.message || 'Failed to update profile')
@@ -187,7 +217,10 @@ function ProfileContent() {
 
     setIsLoading(true)
     try {
-      // TODO: Implement password change API call
+      await changePassword({
+        current_password: passwordData.current_password,
+        new_password: passwordData.new_password,
+      })
       toast.success('Password changed successfully!')
       setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
     } catch (error: any) {
@@ -216,13 +249,12 @@ function ProfileContent() {
       ...notifications,
       [key]: !notifications[key as keyof typeof notifications]
     })
-    toast.success('Notification preferences updated')
   }
 
   const handleSaveNotifications = async () => {
     setIsLoading(true)
     try {
-      // TODO: Implement notification preferences API call
+      await updateNotificationPreferences(notifications)
       toast.success('Notification preferences saved!')
     } catch (error: any) {
       toast.error(error.message || 'Failed to save preferences')
@@ -240,6 +272,17 @@ function ProfileContent() {
     if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
       toast.error('Account deletion is not yet implemented')
     }
+  }
+
+  if (isLoadingData) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -1,100 +1,87 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
-import { Search, Car, Heart, Users, Home, Plane, Building2, Briefcase, Shield, TrendingUp, Filter } from 'lucide-react'
+import { Search, Car, Heart, Users, Home, Plane, Building2, Briefcase, Shield, TrendingUp, Filter, Loader2 } from 'lucide-react'
+import { getCategories, getPolicyTypes, type PolicyCategory, type PolicyType } from '@/lib/api/categories'
+import { toast } from 'sonner'
 
-// Mock data - will be replaced with API data
-const policyCategories = [
-  {
-    id: 'motor',
-    name: 'Motor Insurance',
-    icon: Car,
-    description: 'Comprehensive vehicle coverage',
-    policyCount: 15,
-    startingPrice: 12000,
-  },
-  {
-    id: 'medical',
-    name: 'Medical Insurance',
-    icon: Heart,
-    description: 'Health insurance plans for you and your family',
-    policyCount: 12,
-    startingPrice: 5000,
-  },
-  {
-    id: 'life',
-    name: 'Life Insurance',
-    icon: Users,
-    description: 'Protect your loved ones\' future',
-    policyCount: 18,
-    startingPrice: 3000,
-  },
-  {
-    id: 'home',
-    name: 'Home Insurance',
-    icon: Home,
-    description: 'Property and contents protection',
-    policyCount: 10,
-    startingPrice: 8000,
-  },
-  {
-    id: 'travel',
-    name: 'Travel Insurance',
-    icon: Plane,
-    description: 'International and domestic travel cover',
-    policyCount: 8,
-    startingPrice: 1500,
-  },
-  {
-    id: 'business',
-    name: 'Business Insurance',
-    icon: Building2,
-    description: 'Protect your business assets',
-    policyCount: 14,
-    startingPrice: 25000,
-  },
-]
-
-const featuredPolicies = [
-  {
-    id: '1',
-    name: 'Comprehensive Motor Cover',
-    company: 'Jubilee Insurance',
-    category: 'Motor Insurance',
-    premium: 15000,
-    coverage: 2000000,
-    rating: 4.5,
-    features: ['Accident cover', 'Third party', 'Theft protection', 'Roadside assistance'],
-  },
-  {
-    id: '2',
-    name: 'Family Health Plan',
-    company: 'AAR Insurance',
-    category: 'Medical Insurance',
-    premium: 12000,
-    coverage: 5000000,
-    rating: 4.8,
-    features: ['Outpatient', 'Inpatient', 'Maternity', 'Dental'],
-  },
-  {
-    id: '3',
-    name: 'Whole Life Cover',
-    company: 'Britam',
-    category: 'Life Insurance',
-    premium: 5000,
-    coverage: 10000000,
-    rating: 4.6,
-    features: ['Death benefit', 'Savings plan', 'Loan facility', 'Tax benefits'],
-  },
-]
+// Icon mapping for categories
+const categoryIcons: Record<string, any> = {
+  'motor': Car,
+  'medical': Heart,
+  'life': Users,
+  'home': Home,
+  'travel': Plane,
+  'business': Building2,
+  'car': Car,
+  'health': Heart,
+  'property': Home,
+}
 
 export default function PoliciesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [categories, setCategories] = useState<PolicyCategory[]>([])
+  const [featuredPolicies, setFeaturedPolicies] = useState<PolicyType[]>([])
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true)
+  const [isLoadingPolicies, setIsLoadingPolicies] = useState(true)
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setIsLoadingCategories(true)
+        const data = await getCategories()
+        setCategories(data)
+      } catch (error) {
+        console.error('Error loading categories:', error)
+        toast.error('Failed to load insurance categories')
+      } finally {
+        setIsLoadingCategories(false)
+      }
+    }
+
+    loadCategories()
+  }, [])
+
+  // Fetch policies when category or search changes
+  useEffect(() => {
+    const loadPolicies = async () => {
+      try {
+        setIsLoadingPolicies(true)
+        const filters: any = {}
+
+        if (selectedCategory) {
+          filters.category = selectedCategory
+        }
+
+        if (searchQuery) {
+          filters.search = searchQuery
+        }
+
+        const data = await getPolicyTypes(filters)
+        setFeaturedPolicies(data.slice(0, 6)) // Show first 6 as featured
+      } catch (error) {
+        console.error('Error loading policies:', error)
+        toast.error('Failed to load insurance policies')
+      } finally {
+        setIsLoadingPolicies(false)
+      }
+    }
+
+    loadPolicies()
+  }, [selectedCategory, searchQuery])
+
+  const handleSearch = () => {
+    // Search is already triggered by useEffect when searchQuery changes
+    if (!searchQuery && !selectedCategory) {
+      toast.info('Enter a search term or select a category')
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -121,7 +108,7 @@ export default function PoliciesPage() {
                   className="pl-10 h-12"
                 />
               </div>
-              <Button size="lg">
+              <Button size="lg" onClick={handleSearch}>
                 <Search className="h-5 w-5 mr-2" />
                 Search
               </Button>
@@ -165,51 +152,58 @@ export default function PoliciesPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {policyCategories.map((category) => {
-              const Icon = category.icon
-              return (
-                <Card
-                  key={category.id}
-                  className={`hover:shadow-lg transition-shadow cursor-pointer ${
-                    selectedCategory === category.id ? 'ring-2 ring-primary' : ''
-                  }`}
-                  onClick={() => setSelectedCategory(category.id)}
-                >
-                  <CardHeader>
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-lg bg-primary/10">
-                        <Icon className="h-6 w-6 text-primary" />
+          {isLoadingCategories ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No categories available</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categories.map((category) => {
+                const Icon = categoryIcons[category.slug] || categoryIcons[category.icon] || Shield
+                return (
+                  <Card
+                    key={category.id}
+                    className={`hover:shadow-lg transition-shadow cursor-pointer ${
+                      selectedCategory === category.slug ? 'ring-2 ring-primary' : ''
+                    }`}
+                    onClick={() => setSelectedCategory(selectedCategory === category.slug ? null : category.slug)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-lg bg-primary/10">
+                          <Icon className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <CardTitle>{category.name}</CardTitle>
+                          <CardDescription className="mt-2">
+                            {category.description}
+                          </CardDescription>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <CardTitle>{category.name}</CardTitle>
-                        <CardDescription className="mt-2">
-                          {category.description}
-                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {category.policy_count || 0} policies
+                        </span>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {category.policyCount} policies
-                      </span>
-                      <span className="font-semibold">
-                        From KES {category.startingPrice.toLocaleString()}/mo
-                      </span>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" className="w-full" asChild>
-                      <Link href={`/policies/${category.id}`}>
-                        View Policies
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              )
-            })}
-          </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button variant="outline" className="w-full" asChild>
+                        <Link href={`/policies/${category.slug}`}>
+                          View Policies
+                        </Link>
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -223,68 +217,92 @@ export default function PoliciesPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredPolicies.map((policy) => (
-              <Card key={policy.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-2">
+          {isLoadingPolicies ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : featuredPolicies.length === 0 ? (
+            <div className="text-center py-12">
+              <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground mb-4">
+                {searchQuery || selectedCategory ? 'No policies match your search' : 'No policies available'}
+              </p>
+              {(searchQuery || selectedCategory) && (
+                <Button variant="outline" onClick={() => { setSearchQuery(''); setSelectedCategory(null); }}>
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredPolicies.map((policy) => (
+                <Card key={policy.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <CardTitle className="text-lg">{policy.name}</CardTitle>
+                        <CardDescription className="mt-1">
+                          {policy.insurance_company.name}
+                        </CardDescription>
+                      </div>
+                      {policy.insurance_company.rating && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <span className="text-amber-500">★</span>
+                          <span className="font-medium">{policy.insurance_company.rating}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="inline-block px-2 py-1 rounded text-xs bg-primary/10 text-primary">
+                      {policy.category.name}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div>
-                      <CardTitle className="text-lg">{policy.name}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {policy.company}
-                      </CardDescription>
+                      <div className="text-2xl font-bold">
+                        KES {parseFloat(policy.base_premium).toLocaleString()}
+                      </div>
+                      <p className="text-sm text-muted-foreground">base premium</p>
                     </div>
-                    <div className="flex items-center gap-1 text-sm">
-                      <span className="text-amber-500">★</span>
-                      <span className="font-medium">{policy.rating}</span>
-                    </div>
-                  </div>
-                  <div className="inline-block px-2 py-1 rounded text-xs bg-primary/10 text-primary">
-                    {policy.category}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="text-2xl font-bold">
-                      KES {policy.premium.toLocaleString()}
-                    </div>
-                    <p className="text-sm text-muted-foreground">per month</p>
-                  </div>
 
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Coverage</p>
-                    <p className="font-semibold">
-                      Up to KES {policy.coverage.toLocaleString()}
-                    </p>
-                  </div>
+                    {(policy.min_coverage_amount || policy.max_coverage_amount) && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Coverage Range</p>
+                        <p className="font-semibold text-sm">
+                          {policy.min_coverage_amount && `KES ${parseFloat(policy.min_coverage_amount).toLocaleString()}`}
+                          {policy.min_coverage_amount && policy.max_coverage_amount && ' - '}
+                          {policy.max_coverage_amount && `KES ${parseFloat(policy.max_coverage_amount).toLocaleString()}`}
+                        </p>
+                      </div>
+                    )}
 
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Key Features</p>
-                    <ul className="space-y-1">
-                      {policy.features.slice(0, 3).map((feature, idx) => (
-                        <li key={idx} className="text-sm flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex gap-2">
-                  <Button variant="outline" className="flex-1" asChild>
-                    <Link href={`/policies/details/${policy.id}`}>
-                      View Details
-                    </Link>
-                  </Button>
-                  <Button className="flex-1" asChild>
-                    <Link href={`/purchase/${policy.id}`}>
-                      Buy Cover
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Key Features</p>
+                      <ul className="space-y-1">
+                        {policy.features.slice(0, 3).map((feature, idx) => (
+                          <li key={idx} className="text-sm flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex gap-2">
+                    <Button variant="outline" className="flex-1" asChild>
+                      <Link href={`/policies/details/${policy.id}`}>
+                        View Details
+                      </Link>
+                    </Button>
+                    <Button className="flex-1" asChild>
+                      <Link href={`/purchase/${policy.id}`}>
+                        Buy Cover
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
 
           <div className="text-center mt-8">
             <Button size="lg" variant="outline">

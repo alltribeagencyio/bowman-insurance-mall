@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -31,9 +31,11 @@ import {
   Users,
   FileCheck,
   Eye,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { getPolicyTypeById, type PolicyTypeDetail } from '@/lib/api/categories'
 
 // Mock policy data - for browsing policies
 const browsingPolicyData = {
@@ -204,12 +206,32 @@ export default function PolicyDetailPage() {
   const params = useParams()
   const [showFullDescription, setShowFullDescription] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const [policyData, setPolicyData] = useState<PolicyTypeDetail | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Check if this is a user's owned policy (from /dashboard/my-policies)
   // vs browsing policy (from /policies)
-  const isOwnedPolicy = true // TODO: Determine based on route or policy ownership
+  const isOwnedPolicy = false // This page is for browsing policies, not owned policies
 
-  const policyData = isOwnedPolicy ? ownedPolicyData : browsingPolicyData
+  // Fetch policy details from API
+  useEffect(() => {
+    const loadPolicyData = async () => {
+      try {
+        setIsLoading(true)
+        const data = await getPolicyTypeById(params.id as string)
+        setPolicyData(data)
+      } catch (error) {
+        console.error('Error loading policy:', error)
+        toast.error('Failed to load policy details')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (params.id) {
+      loadPolicyData()
+    }
+  }, [params.id])
 
   const handleRenewPolicy = () => {
     toast.success('Renewal process started')

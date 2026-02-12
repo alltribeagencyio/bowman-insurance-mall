@@ -18,11 +18,13 @@ import {
   DollarSign,
   MoreVertical,
   RefreshCw,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import type { Policy } from '@/types'
+import { getUserPolicies } from '@/lib/api/policies'
 
 // Mock data for development - will be replaced with API calls
 const mockPolicies: Policy[] = [
@@ -155,12 +157,30 @@ const mockPolicies: Policy[] = [
 ]
 
 function MyPoliciesContent() {
-  const [policies, setPolicies] = useState<Policy[]>(mockPolicies)
-  const [isLoading, setIsLoading] = useState(false)
+  const [policies, setPolicies] = useState<Policy[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
+
+  // Fetch user policies on mount
+  useEffect(() => {
+    const fetchPolicies = async () => {
+      try {
+        setIsLoading(true)
+        const data = await getUserPolicies()
+        setPolicies(data)
+      } catch (error) {
+        console.error('Error fetching policies:', error)
+        toast.error('Failed to load policies. Please try again.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchPolicies()
+  }, [])
 
   const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
@@ -343,7 +363,17 @@ function MyPoliciesContent() {
       </Card>
 
       {/* Policies List */}
-      {allFilteredPolicies.length === 0 ? (
+      {isLoading ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Loader2 className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
+            <h3 className="font-semibold mb-2">Loading policies...</h3>
+            <p className="text-muted-foreground">
+              Please wait while we fetch your policies
+            </p>
+          </CardContent>
+        </Card>
+      ) : allFilteredPolicies.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Shield className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />

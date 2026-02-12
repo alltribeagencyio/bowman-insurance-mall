@@ -28,17 +28,9 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth/auth-context'
-
-// Mock product data - in real app, fetch from API
-const getProductById = (id: string) => ({
-  id,
-  name: 'Comprehensive Motor Cover',
-  company: 'Jubilee Insurance',
-  category: 'Motor',
-  premium: 15000,
-  coverage: 2000000,
-  description: 'Complete protection for your vehicle',
-})
+import { getPolicyTypeById } from '@/lib/api/categories'
+import { purchasePolicy } from '@/lib/api/purchase'
+import { paymentsApi } from '@/lib/api/payments'
 
 // Mock saved vehicles
 const savedVehicles = [
@@ -81,9 +73,27 @@ export default function PurchasePage() {
       return
     }
 
-    // Load product
-    const prod = getProductById(params.id as string)
-    setProduct(prod)
+    // Load product from API
+    const loadProduct = async () => {
+      try {
+        const policyType = await getPolicyTypeById(params.id as string)
+        setProduct({
+          id: policyType.id,
+          name: policyType.name,
+          company: policyType.insurance_company.name,
+          companyId: policyType.insurance_company.id,
+          category: policyType.category.name,
+          premium: parseFloat(policyType.base_premium),
+          coverage: policyType.max_coverage_amount ? parseFloat(policyType.max_coverage_amount) : 0,
+          description: policyType.description,
+        })
+      } catch (error) {
+        console.error('Error loading policy:', error)
+        toast.error('Failed to load policy details')
+      }
+    }
+
+    loadProduct()
 
     // Pre-fill user data
     if (user) {
@@ -204,11 +214,71 @@ export default function PurchasePage() {
   }
 
   const handleSubmit = async () => {
-    toast.success('Application submitted! You will be contacted shortly.')
-    // TODO: Submit to API
-    setTimeout(() => {
-      router.push('/dashboard/my-policies')
-    }, 2000)
+    try {
+      // Calculate dates
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() + 1) // Start tomorrow
+      const endDate = new Date(startDate)
+
+      // Set end date based on payment frequency
+      const frequency = formData.payment?.frequency || 'annually'
+      if (frequency === 'annually') {
+        endDate.setFullYear(endDate.getFullYear() + 1)
+      } else if (frequency === 'quarterly') {
+        endDate.setMonth(endDate.getMonth() + 3)
+      } else {
+        endDate.setMonth(endDate.getMonth() + 1)
+      }
+
+      // Prepare policy data based on category
+      let policyData: any = {}
+      if (formData.vehicle) {
+        policyData = {
+          vehicle_details: {
+            make: formData.vehicle.make,
+            model: formData.vehicle.model,
+            year: parseInt(formData.vehicle.year),
+            registration: formData.vehicle.registration,
+            value: parseFloat(formData.vehicle.value)
+          }
+        }
+      }
+
+      // Prepare beneficiaries if any
+      const beneficiaries = formData.beneficiaries?.map((b: any) => ({
+        name: b.name,
+        relationship: b.relationship,
+        phone_number: b.phone,
+        percentage: parseFloat(b.percentage)
+      })) || []
+
+      // Purchase the policy
+      const purchaseData = {
+        policy_type: product.id,
+        insurance_company: product.companyId,
+        start_date: startDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0],
+        premium_amount: product.premium.toString(),
+        coverage_amount: (formData.coverage?.amount || product.coverage).toString(),
+        payment_frequency: frequency,
+        policy_data: policyData,
+        beneficiaries: beneficiaries.length > 0 ? beneficiaries : undefined
+      }
+
+      toast.loading('Creating your policy...')
+      const policy = await purchasePolicy(purchaseData)
+
+      toast.success('Policy created! Redirecting to payment...')
+
+      // Redirect to payment page
+      setTimeout(() => {
+        router.push(`/payment/${policy.id}`)
+      }, 1000)
+
+    } catch (error: any) {
+      console.error('Error purchasing policy:', error)
+      toast.error(error.response?.data?.message || 'Failed to purchase policy. Please try again.')
+    }
   }
 
   const updateFormData = (section: string, data: any) => {

@@ -19,103 +19,11 @@ import {
   XCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
-
-// Mock data - will be replaced with API calls
-const mockDashboardData = {
-  metrics: {
-    total_users: 1250,
-    users_growth: 12.5,
-    active_policies: 850,
-    policies_growth: 8.3,
-    total_revenue: 12500000,
-    revenue_growth: 15.2,
-    pending_claims: 23,
-    claims_change: -3
-  },
-  recentUsers: [
-    {
-      id: '1',
-      name: 'John Doe',
-      email: 'john@example.com',
-      joined: '2026-01-27T10:30:00Z',
-      status: 'active'
-    },
-    {
-      id: '2',
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      joined: '2026-01-27T09:15:00Z',
-      status: 'active'
-    },
-    {
-      id: '3',
-      name: 'Mike Johnson',
-      email: 'mike@example.com',
-      joined: '2026-01-27T08:00:00Z',
-      status: 'pending'
-    }
-  ],
-  recentTransactions: [
-    {
-      id: 'TXN-001',
-      user: 'John Doe',
-      policy: 'Comprehensive Motor',
-      amount: 45000,
-      date: '2026-01-27T11:00:00Z',
-      status: 'completed'
-    },
-    {
-      id: 'TXN-002',
-      user: 'Jane Smith',
-      policy: 'Third Party Motor',
-      amount: 25000,
-      date: '2026-01-27T10:45:00Z',
-      status: 'completed'
-    },
-    {
-      id: 'TXN-003',
-      user: 'Mike Johnson',
-      policy: 'Home Insurance',
-      amount: 35000,
-      date: '2026-01-27T10:30:00Z',
-      status: 'pending'
-    },
-    {
-      id: 'TXN-004',
-      user: 'Sarah Williams',
-      policy: 'Life Insurance',
-      amount: 50000,
-      date: '2026-01-27T10:15:00Z',
-      status: 'failed'
-    }
-  ],
-  pendingTasks: [
-    {
-      id: '1',
-      title: '5 claims pending review',
-      description: 'Claims submitted in the last 24 hours',
-      link: '/admin/claims',
-      priority: 'high'
-    },
-    {
-      id: '2',
-      title: '3 policies awaiting approval',
-      description: 'New policy applications pending',
-      link: '/admin/policies',
-      priority: 'medium'
-    },
-    {
-      id: '3',
-      title: '2 failed transactions',
-      description: 'Payment retries needed',
-      link: '/admin/transactions',
-      priority: 'high'
-    }
-  ]
-}
+import { getAdminDashboard } from '@/lib/api/admin'
+import type { AdminDashboardData } from '@/lib/api/admin'
 
 export default function AdminDashboard() {
-  const [data, setData] = useState(mockDashboardData)
+  const [data, setData] = useState<AdminDashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -125,16 +33,11 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     setIsLoading(true)
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/v1/admin/dashboard/')
-      // const dashboardData = await response.json()
-      // setData(dashboardData)
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500))
-      setData(mockDashboardData)
-    } catch (error) {
-      toast.error('Failed to load dashboard data')
+      const dashboardData = await getAdminDashboard()
+      setData(dashboardData)
+    } catch (error: any) {
+      console.error('Failed to load dashboard data:', error)
+      toast.error(error.response?.data?.message || 'Failed to load dashboard data')
     } finally {
       setIsLoading(false)
     }
@@ -184,6 +87,20 @@ export default function AdminDashboard() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center min-h-[600px]">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">Failed to load dashboard data</p>
+          <Button variant="outline" onClick={loadDashboardData} className="mt-4">
+            Try Again
+          </Button>
         </div>
       </div>
     )
@@ -281,16 +198,16 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {data.recentTransactions.map((transaction) => (
+              {data.recent_transactions.map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="text-sm font-medium">{transaction.user}</p>
-                    <p className="text-xs text-muted-foreground">{transaction.policy}</p>
+                    <p className="text-sm font-medium">{transaction.user.name}</p>
+                    <p className="text-xs text-muted-foreground">{transaction.policy?.policy_number || 'N/A'}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <p className="text-sm font-medium">{formatCurrency(transaction.amount)}</p>
-                      <p className="text-xs text-muted-foreground">{formatTimeAgo(transaction.date)}</p>
+                      <p className="text-xs text-muted-foreground">{formatTimeAgo(transaction.created_at)}</p>
                     </div>
                     {getStatusBadge(transaction.status)}
                   </div>
@@ -318,19 +235,19 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {data.recentUsers.map((user) => (
+              {data.recent_users.map((user) => (
                 <div key={user.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm">
-                      {user.name.split(' ').map(n => n[0]).join('')}
+                      {user.first_name[0]}{user.last_name[0]}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-sm font-medium">{user.first_name} {user.last_name}</p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground mb-1">{formatTimeAgo(user.joined)}</p>
+                    <p className="text-xs text-muted-foreground mb-1">{formatTimeAgo(user.created_at)}</p>
                     {getStatusBadge(user.status)}
                   </div>
                 </div>
@@ -351,26 +268,23 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {data.pendingTasks.map((task) => (
+            {data.pending_tasks.map((task) => (
               <div
                 key={task.id}
                 className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary transition-colors"
               >
                 <div className="flex items-start gap-3">
                   <div className={`h-2 w-2 rounded-full mt-2 ${
-                    task.priority === 'high' ? 'bg-red-500' : 'bg-yellow-500'
+                    task.priority === 'high' ? 'bg-red-500' : task.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
                   }`} />
                   <div>
                     <p className="font-medium">{task.title}</p>
                     <p className="text-sm text-muted-foreground">{task.description}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href={task.link}>
-                    View
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Link>
-                </Button>
+                <div className="text-xs text-muted-foreground">
+                  {formatDate(task.created_at)}
+                </div>
               </div>
             ))}
           </div>

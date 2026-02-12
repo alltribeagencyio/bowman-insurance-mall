@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { Button } from '@/components/ui/button'
@@ -27,8 +27,12 @@ import {
   Zap,
   Wallet,
   Award,
-  Star
+  Star,
+  Loader2
 } from 'lucide-react'
+import { toast } from 'sonner'
+import { getUserPolicies, type Policy } from '@/lib/api/policies'
+import { getUserClaims, type Claim } from '@/lib/api/claims'
 
 // Mock data - will be replaced with API calls
 const mockDashboardData = {
@@ -150,7 +154,57 @@ const mockDashboardData = {
 
 function DashboardContent() {
   const { user } = useAuth()
+  const [policies, setPolicies] = useState<Policy[]>([])
+  const [claims, setClaims] = useState<Claim[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [data] = useState(mockDashboardData)
+
+  // Fetch data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        const [policiesData, claimsData] = await Promise.all([
+          getUserPolicies(),
+          getUserClaims()
+        ])
+        setPolicies(policiesData)
+        setClaims(claimsData)
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+        toast.error('Failed to load dashboard data. Please refresh the page.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  // Calculate stats from API data
+  const stats = {
+    policies: {
+      total: policies.length,
+      active: policies.filter(p => p.status === 'active').length,
+      expiringSoon: policies.filter(p => {
+        const daysUntilExpiry = Math.floor(
+          (new Date(p.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        )
+        return daysUntilExpiry <= 30 && daysUntilExpiry > 0
+      }).length,
+      expired: policies.filter(p => p.status === 'expired').length
+    },
+    claims: {
+      total: claims.length,
+      pending: claims.filter(c => c.status === 'submitted' || c.status === 'under_review').length,
+      approved: claims.filter(c => c.status === 'approved').length,
+      rejected: claims.filter(c => c.status === 'rejected').length,
+      settled: claims.filter(c => c.status === 'settled').length
+    },
+    payments: data.payments,
+    wallet: data.wallet,
+    loyalty: data.loyalty
+  }
 
   const getTimeAgo = (timestamp: string) => {
     const now = new Date()
@@ -163,6 +217,20 @@ function DashboardContent() {
     if (diffMins < 60) return `${diffMins}m ago`
     if (diffHours < 24) return `${diffHours}h ago`
     return `${diffDays}d ago`
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
+          <h3 className="text-xl font-semibold mb-2">Loading Dashboard...</h3>
+          <p className="text-muted-foreground">
+            Please wait while we fetch your data
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -187,9 +255,9 @@ function DashboardContent() {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{data.policies.active}</div>
+            <div className="text-2xl font-bold text-green-600">{stats.policies.active}</div>
             <p className="text-xs text-muted-foreground">
-              {data.policies.total} total policies
+              {stats.policies.total} total policies
             </p>
           </CardContent>
         </Card>
@@ -236,9 +304,9 @@ function DashboardContent() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">KES {data.payments.pendingAmount.toLocaleString()}</div>
+            <div className="text-2xl font-bold">KES {stats.payments.pendingAmount.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              {data.payments.pendingCount} payment{data.payments.pendingCount !== 1 ? 's' : ''} due
+              {stats.payments.pendingCount} payment{stats.payments.pendingCount !== 1 ? 's' : ''} due
             </p>
           </CardContent>
         </Card>
@@ -251,9 +319,9 @@ function DashboardContent() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.claims.pending}</div>
+            <div className="text-2xl font-bold">{stats.claims.pending}</div>
             <p className="text-xs text-muted-foreground">
-              {data.claims.total} total claim{data.claims.total !== 1 ? 's' : ''}
+              {stats.claims.total} total claim{stats.claims.total !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>
@@ -308,9 +376,9 @@ function DashboardContent() {
         {/* Main Column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Alerts Section */}
-          {(data.payments.overdueCount > 0 || data.policies.expiringSoon > 0 || !user?.is_verified) && (
+          {(stats.payments.overdueCount > 0 || stats.policies.expiringSoon > 0 || !user?.is_verified) && (
             <div className="space-y-4">
-              {data.payments.overdueCount > 0 && (
+              {stats.payments.overdueCount > 0 && (
                 <Card className="border-red-200 bg-red-50 dark:bg-red-950">
                   <CardHeader>
                     <div className="flex items-start gap-4">
@@ -320,7 +388,7 @@ function DashboardContent() {
                           Overdue Payments
                         </CardTitle>
                         <CardDescription className="mt-2 text-red-800 dark:text-red-200">
-                          You have {data.payments.overdueCount} overdue payment{data.payments.overdueCount !== 1 ? 's' : ''} totaling KES {data.payments.overdueAmount.toLocaleString()}
+                          You have {stats.payments.overdueCount} overdue payment{stats.payments.overdueCount !== 1 ? 's' : ''} totaling KES {stats.payments.overdueAmount.toLocaleString()}
                         </CardDescription>
                       </div>
                       <Button variant="destructive" asChild>
@@ -333,7 +401,7 @@ function DashboardContent() {
                 </Card>
               )}
 
-              {data.policies.expiringSoon > 0 && (
+              {stats.policies.expiringSoon > 0 && (
                 <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950">
                   <CardHeader>
                     <div className="flex items-start gap-4">
@@ -343,7 +411,7 @@ function DashboardContent() {
                           Policies Expiring Soon
                         </CardTitle>
                         <CardDescription className="mt-2 text-amber-800 dark:text-amber-200">
-                          {data.policies.expiringSoon} polic{data.policies.expiringSoon !== 1 ? 'ies' : 'y'} expiring within 30 days
+                          {stats.policies.expiringSoon} polic{stats.policies.expiringSoon !== 1 ? 'ies' : 'y'} expiring within 30 days
                         </CardDescription>
                       </div>
                       <Button variant="outline" asChild>
@@ -529,15 +597,15 @@ function DashboardContent() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Active</span>
-                <Badge variant="default">{data.policies.active}</Badge>
+                <Badge variant="default">{stats.policies.active}</Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Expiring Soon</span>
-                <Badge variant="secondary">{data.policies.expiringSoon}</Badge>
+                <Badge variant="secondary">{stats.policies.expiringSoon}</Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Expired</span>
-                <Badge variant="destructive">{data.policies.expired}</Badge>
+                <Badge variant="destructive">{stats.policies.expired}</Badge>
               </div>
               <Button className="w-full mt-4" asChild>
                 <Link href="/dashboard/my-policies">
@@ -559,15 +627,15 @@ function DashboardContent() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Pending</span>
-                <Badge variant="secondary">{data.claims.pending}</Badge>
+                <Badge variant="secondary">{stats.claims.pending}</Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Approved</span>
-                <Badge variant="default">{data.claims.approved}</Badge>
+                <Badge variant="default">{stats.claims.approved}</Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Rejected</span>
-                <Badge variant="destructive">{data.claims.rejected}</Badge>
+                <Badge variant="destructive">{stats.claims.rejected}</Badge>
               </div>
               <Button className="w-full mt-4" variant="outline" asChild>
                 <Link href="/claims/new">
