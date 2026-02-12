@@ -61,7 +61,7 @@ export const deleteNotification = async (id: string): Promise<void> => {
 }
 
 // Poll for new notifications (helper function for real-time updates)
-export const pollNotifications = async (
+export const pollNotifications = (
   callback: (count: number) => void,
   interval: number = 30000 // 30 seconds
 ): (() => void) => {

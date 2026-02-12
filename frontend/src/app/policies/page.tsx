@@ -245,12 +245,6 @@ export default function PoliciesPage() {
                           {policy.insurance_company.name}
                         </CardDescription>
                       </div>
-                      {policy.insurance_company.rating && (
-                        <div className="flex items-center gap-1 text-sm">
-                          <span className="text-amber-500">★</span>
-                          <span className="font-medium">{policy.insurance_company.rating}</span>
-                        </div>
-                      )}
                     </div>
                     <div className="inline-block px-2 py-1 rounded text-xs bg-primary/10 text-primary">
                       {policy.category.name}

@@ -273,6 +273,35 @@ export default function PolicyDetailPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading policy details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!policyData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Policy Not Found</h2>
+          <p className="text-muted-foreground mb-4">The policy you're looking for doesn't exist.</p>
+          <Button asChild>
+            <Link href="/policies">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Policies
+            </Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Breadcrumb */}
@@ -311,11 +340,11 @@ export default function PolicyDetailPage() {
                         )}
                         <div className="flex items-center gap-2 mb-2">
                           <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{policyData.company.name}</span>
+                          <span className="font-medium">{policyData.insurance_company.name}</span>
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Badge>{policyData.category}</Badge>
+                        <Badge>{policyData.category.name}</Badge>
                         {isOwnedPolicy && (
                           <Badge variant={getStatusBadgeVariant(ownedPolicyData.status)}>
                             {ownedPolicyData.status}
@@ -324,13 +353,6 @@ export default function PolicyDetailPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-sm flex-wrap">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                        <span className="font-medium">{policyData.company.rating}</span>
-                        <span className="text-muted-foreground">
-                          ({policyData.company.reviews} reviews)
-                        </span>
-                      </div>
                       {isOwnedPolicy && (
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -458,31 +480,18 @@ export default function PolicyDetailPage() {
                   </Card>
 
                   {/* Terms & Conditions */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Terms & Conditions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Minimum Age:</span>
-                        <span className="font-medium">{policyData.terms.minimumAge} years</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Maximum Age:</span>
-                        <span className="font-medium">{policyData.terms.maximumAge} years</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Excess Amount:</span>
-                        <span className="font-medium">
-                          KES {policyData.terms.excessAmount.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Claim Processing:</span>
-                        <span className="font-medium">{policyData.terms.claimProcessingTime}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {policyData.terms_and_conditions && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Terms & Conditions</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground whitespace-pre-line">
+                          {policyData.terms_and_conditions}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
 
                 {/* Payments Tab */}
@@ -855,51 +864,40 @@ export default function PolicyDetailPage() {
                   </Card>
 
                   {/* Requirements */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Requirements
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        {policyData.requirements.map((requirement, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                            <span>{requirement}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
+                  {policyData.required_documents && policyData.required_documents.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          Required Documents
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          {policyData.required_documents.map((doc: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                              <span>{doc}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Terms & Conditions */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Terms & Conditions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Minimum Age:</span>
-                        <span className="font-medium">{policyData.terms.minimumAge} years</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Maximum Age:</span>
-                        <span className="font-medium">{policyData.terms.maximumAge} years</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Excess Amount:</span>
-                        <span className="font-medium">
-                          KES {policyData.terms.excessAmount.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Claim Processing:</span>
-                        <span className="font-medium">{policyData.terms.claimProcessingTime}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {policyData.terms_and_conditions && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Terms & Conditions</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground whitespace-pre-line">
+                          {policyData.terms_and_conditions}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
 
                 {/* Protected tabs - Only visible to authenticated users */}
@@ -1042,10 +1040,10 @@ export default function PolicyDetailPage() {
                   <>
                     <div>
                       <div className="text-3xl font-bold">
-                        KES {policyData.premium.toLocaleString()}
+                        KES {parseFloat(policyData.base_premium).toLocaleString()}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        per {policyData.paymentFrequency}
+                        per month
                       </p>
                     </div>
 
@@ -1108,26 +1106,30 @@ export default function PolicyDetailPage() {
                   <>
                     <div>
                       <div className="text-3xl font-bold">
-                        KES {policyData.premium.toLocaleString()}
+                        KES {parseFloat(policyData.base_premium).toLocaleString()}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        per {policyData.paymentFrequency}
+                        starting from
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Coverage:</span>
-                        <span className="font-medium">
-                          KES {policyData.coverage.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Excess:</span>
-                        <span className="font-medium">
-                          KES {policyData.terms.excessAmount.toLocaleString()}
-                        </span>
-                      </div>
+                      {policyData.max_coverage_amount && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Max Coverage:</span>
+                          <span className="font-medium">
+                            KES {parseFloat(policyData.max_coverage_amount).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      {policyData.min_coverage_amount && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Min Coverage:</span>
+                          <span className="font-medium">
+                            KES {parseFloat(policyData.min_coverage_amount).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-2">
