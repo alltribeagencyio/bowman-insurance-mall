@@ -25,75 +25,6 @@ import { toast } from 'sonner'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { getUserPolicies, type Policy } from '@/lib/api/policies'
 
-// Mock data for development - will be replaced with API calls
-const mockPolicies: Policy[] = [
-  {
-    id: '1',
-    policy_number: 'POL-2026-001234',
-    policy_type: {
-      id: '1',
-      name: 'Comprehensive Motor Insurance',
-      category: 'Motor Insurance'
-    },
-    insurance_company: {
-      id: '1',
-      name: 'Jubilee Insurance',
-      logo: ''
-    },
-    status: 'active',
-    start_date: '2026-01-01',
-    end_date: '2026-12-31',
-    coverage_amount: 2000000,
-    premium_amount: 15000,
-    premium_frequency: 'monthly',
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z'
-  },
-  {
-    id: '2',
-    policy_number: 'POL-2026-001235',
-    policy_type: {
-      id: '2',
-      name: 'Medical Insurance Plus',
-      category: 'Medical Insurance'
-    },
-    insurance_company: {
-      id: '2',
-      name: 'AAR Insurance',
-      logo: ''
-    },
-    status: 'active',
-    start_date: '2026-01-15',
-    end_date: '2027-01-14',
-    coverage_amount: 5000000,
-    premium_amount: 25000,
-    premium_frequency: 'annually',
-    created_at: '2026-01-15T00:00:00Z',
-    updated_at: '2026-01-15T00:00:00Z'
-  },
-  {
-    id: '3',
-    policy_number: 'POL-2025-009876',
-    policy_type: {
-      id: '3',
-      name: 'Home Insurance',
-      category: 'Home Insurance'
-    },
-    insurance_company: {
-      id: '3',
-      name: 'Britam',
-      logo: ''
-    },
-    status: 'expired',
-    start_date: '2025-01-01',
-    end_date: '2025-12-31',
-    coverage_amount: 3000000,
-    premium_amount: 12000,
-    premium_frequency: 'annually',
-    created_at: '2025-01-01T00:00:00Z',
-    updated_at: '2025-01-01T00:00:00Z'
-  }
-]
 
 function MyPoliciesContent() {
   const [policies, setPolicies] = useState<Policy[]>([])
@@ -110,9 +41,16 @@ function MyPoliciesContent() {
         setIsLoading(true)
         const data = await getUserPolicies()
         setPolicies(data)
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching policies:', error)
-        toast.error('Failed to load policies. Please try again.')
+
+        // Only show error for non-401 errors
+        if (error.response?.status !== 401) {
+          toast.error('Failed to load policies. Please try again.')
+        }
+
+        // Set empty array on error
+        setPolicies([])
       } finally {
         setIsLoading(false)
       }
@@ -163,8 +101,8 @@ function MyPoliciesContent() {
     const matchesSearch =
       searchQuery === '' ||
       policy.policy_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      policy.policy_type.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      policy.insurance_company.name.toLowerCase().includes(searchQuery.toLowerCase())
+      policy.policy_type_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      policy.company_name.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesStatus =
       statusFilter === 'all' || policy.status === statusFilter
@@ -187,9 +125,9 @@ function MyPoliciesContent() {
     total: policies.length,
     active: policies.filter(p => p.status === 'active').length,
     expiring: policies.filter(p => {
-      const daysUntilExpiry = Math.floor(
-        (new Date(p.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-      )
+      const daysUntilExpiry = p.days_to_expiry !== undefined
+        ? p.days_to_expiry
+        : Math.floor((new Date(p.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       return daysUntilExpiry <= 30 && daysUntilExpiry > 0
     }).length,
     expired: policies.filter(p => p.status === 'expired').length
@@ -332,48 +270,51 @@ function MyPoliciesContent() {
           <Card>
             <CardContent className="p-0">
               <div className="divide-y">
-                {filteredPolicies.map((policy) => (
-                  <div
-                    key={policy.id}
-                    className="p-4 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      {/* Left Section */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          {getStatusIcon(policy.status)}
-                          <h3 className="font-semibold text-sm truncate">
-                            {policy.policy_type.name}
-                          </h3>
-                          <Badge variant={getStatusBadgeVariant(policy.status)} className="flex-shrink-0">
-                            {policy.status}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {policy.policy_number} • {policy.insurance_company.name}
-                        </p>
-                      </div>
+                {filteredPolicies.map((policy) => {
+                  const daysLeft = policy.days_to_expiry !== undefined
+                    ? Math.max(0, policy.days_to_expiry)
+                    : Math.max(0, Math.floor(
+                        (new Date(policy.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                      ))
 
-                      {/* Middle Section - Key Info */}
-                      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Premium: </span>
-                          <span className="font-medium">KES {policy.premium_amount.toLocaleString()}</span>
-                          <span className="text-muted-foreground text-xs"> /{policy.premium_frequency}</span>
+                  return (
+                    <div
+                      key={policy.id}
+                      className="p-4 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        {/* Left Section */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            {getStatusIcon(policy.status)}
+                            <h3 className="font-semibold text-sm truncate">
+                              {policy.policy_type_name}
+                            </h3>
+                            <Badge variant={getStatusBadgeVariant(policy.status)} className="flex-shrink-0">
+                              {policy.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {policy.policy_number} • {policy.company_name}
+                          </p>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground">Expires: </span>
-                          <span className="font-medium">{new Date(policy.end_date).toLocaleDateString()}</span>
+
+                        {/* Middle Section - Key Info */}
+                        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Premium: </span>
+                            <span className="font-medium">KES {policy.premium_amount.toLocaleString()}</span>
+                            <span className="text-muted-foreground text-xs"> /{policy.premium_frequency}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Expires: </span>
+                            <span className="font-medium">{new Date(policy.end_date).toLocaleDateString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Days left: </span>
+                            <span className="font-medium">{daysLeft}</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground">Days left: </span>
-                          <span className="font-medium">
-                            {Math.max(0, Math.floor(
-                              (new Date(policy.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-                            ))}
-                          </span>
-                        </div>
-                      </div>
 
                       {/* Right Section - Actions */}
                       <div className="flex flex-wrap gap-2">
@@ -407,10 +348,11 @@ function MyPoliciesContent() {
                             </Link>
                           </Button>
                         )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           </Card>

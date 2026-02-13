@@ -206,7 +206,7 @@ export default function NewClaimPage() {
                       <SelectContent>
                         {policies.map((policy) => (
                           <SelectItem key={policy.id} value={policy.id}>
-                            {policy.policy_number} - {policy.policy_type.name}
+                            {policy.policy_number} - {policy.policy_type_name}
                           </SelectItem>
                         ))}
                       </SelectContent>

@@ -71,10 +71,35 @@ export interface DashboardData {
   expiringPolicies: ExpiringPolicy[]
 }
 
+// Simple cache for dashboard data
+let dashboardCache: { data: DashboardData; timestamp: number } | null = null
+const CACHE_DURATION = 60000 // 1 minute
+
 // Get dashboard overview data
-export const getDashboardData = async (): Promise<DashboardData> => {
+export const getDashboardData = async (forceRefresh = false): Promise<DashboardData> => {
+  // Check cache first
+  if (!forceRefresh && dashboardCache) {
+    const now = Date.now()
+    if (now - dashboardCache.timestamp < CACHE_DURATION) {
+      return dashboardCache.data
+    }
+  }
+
   const response = await apiClient.get('/dashboard/')
-  return response.data
+  const data = response.data
+
+  // Update cache
+  dashboardCache = {
+    data,
+    timestamp: Date.now()
+  }
+
+  return data
+}
+
+// Clear dashboard cache
+export const clearDashboardCache = () => {
+  dashboardCache = null
 }
 
 // Get dashboard statistics

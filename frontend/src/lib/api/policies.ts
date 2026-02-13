@@ -3,24 +3,31 @@ import { apiClient } from './client'
 export interface Policy {
   id: string
   policy_number: string
-  policy_type: {
-    id: string
-    name: string
-    category: string
-  }
-  insurance_company: {
-    id: string
-    name: string
-    logo?: string
-  }
+  user?: string
+  user_name?: string
+  user_email?: string
+  policy_type: string
+  policy_type_name: string
+  insurance_company: string
+  company_name: string
+  company_logo?: string
+  category_name: string
   status: 'active' | 'pending' | 'expired' | 'cancelled'
   coverage_amount: number
   premium_amount: number
-  premium_frequency: 'monthly' | 'quarterly' | 'annually'
+  premium_frequency: 'monthly' | 'quarterly' | 'semi-annual' | 'annually'
   start_date: string
   end_date: string
+  policy_data?: any
+  certificate_url?: string
+  policy_document_url?: string
+  beneficiaries?: any
+  days_to_expiry?: number
+  is_active?: boolean
   created_at: string
   updated_at: string
+  activated_at?: string
+  cancelled_at?: string
 }
 
 export interface PolicyDetail extends Policy {
@@ -77,10 +84,35 @@ export interface PolicyDetail extends Policy {
   }>
 }
 
+// Simple cache for policies
+let policiesCache: { data: Policy[]; timestamp: number } | null = null
+const CACHE_DURATION = 60000 // 1 minute
+
 // Get all user policies
-export const getUserPolicies = async (): Promise<Policy[]> => {
+export const getUserPolicies = async (forceRefresh = false): Promise<Policy[]> => {
+  // Check cache first
+  if (!forceRefresh && policiesCache) {
+    const now = Date.now()
+    if (now - policiesCache.timestamp < CACHE_DURATION) {
+      return policiesCache.data
+    }
+  }
+
   const response = await apiClient.get('/policies/my-policies/')
-  return response.data
+  const data = response.data
+
+  // Update cache
+  policiesCache = {
+    data,
+    timestamp: Date.now()
+  }
+
+  return data
+}
+
+// Clear policies cache (call after creating/updating a policy)
+export const clearPoliciesCache = () => {
+  policiesCache = null
 }
 
 // Get policy by ID
