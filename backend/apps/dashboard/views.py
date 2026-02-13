@@ -168,14 +168,14 @@ def get_recent_activity_data(user, limit=10):
         })
 
     # Recent claims
-    recent_claims = Claim.objects.filter(user=user).order_by('-submitted_at')[:limit]
+    recent_claims = Claim.objects.filter(user=user).order_by('-filed_date')[:limit]
     for claim in recent_claims:
         activities.append({
             'id': f'claim-{claim.id}',
             'type': 'claim',
             'title': f'Claim {claim.status.replace("_", " ").title()}',
-            'description': f'Claim #{claim.claim_number} - {claim.type}',
-            'timestamp': claim.submitted_at.isoformat(),
+            'description': f'Claim #{claim.claim_number} - {claim.get_type_display()}',
+            'timestamp': claim.filed_date.isoformat(),
             'icon': 'FileText',
             'iconColor': 'text-blue-600',
             'bgColor': 'bg-blue-50'

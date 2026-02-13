@@ -40,7 +40,8 @@ function MyPoliciesContent() {
       try {
         setIsLoading(true)
         const data = await getUserPolicies()
-        setPolicies(data)
+        // Ensure data is always an array
+        setPolicies(Array.isArray(data) ? data : [])
       } catch (error: any) {
         console.error('Error fetching policies:', error)
 
@@ -97,7 +98,7 @@ function MyPoliciesContent() {
     // TODO: Navigate to renewal flow
   }
 
-  const allFilteredPolicies = policies.filter(policy => {
+  const allFilteredPolicies = Array.isArray(policies) ? policies.filter(policy => {
     const matchesSearch =
       searchQuery === '' ||
       policy.policy_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -108,7 +109,7 @@ function MyPoliciesContent() {
       statusFilter === 'all' || policy.status === statusFilter
 
     return matchesSearch && matchesStatus
-  })
+  }) : []
 
   // Calculate pagination
   const totalPages = Math.ceil(allFilteredPolicies.length / itemsPerPage)
@@ -122,15 +123,15 @@ function MyPoliciesContent() {
   }, [searchQuery, statusFilter])
 
   const stats = {
-    total: policies.length,
-    active: policies.filter(p => p.status === 'active').length,
-    expiring: policies.filter(p => {
+    total: Array.isArray(policies) ? policies.length : 0,
+    active: Array.isArray(policies) ? policies.filter(p => p.status === 'active').length : 0,
+    expiring: Array.isArray(policies) ? policies.filter(p => {
       const daysUntilExpiry = p.days_to_expiry !== undefined
         ? p.days_to_expiry
         : Math.floor((new Date(p.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       return daysUntilExpiry <= 30 && daysUntilExpiry > 0
-    }).length,
-    expired: policies.filter(p => p.status === 'expired').length
+    }).length : 0,
+    expired: Array.isArray(policies) ? policies.filter(p => p.status === 'expired').length : 0
   }
 
   return (
