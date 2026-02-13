@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { getAllClaims } from '@/lib/api/admin'
+import { getAllClaims, type Claim } from '@/lib/api/admin'
 import {
   Select,
   SelectContent,
@@ -39,119 +39,126 @@ import {
   Download
 } from 'lucide-react'
 
-interface Claim {
-  id: string
-  claim_number: string
-  user: {
-    name: string
-    email: string
-  }
-  policy: {
-    number: string
-    type: string
-  }
-  amount: number
-  description: string
-  status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'settled'
-  priority: 'high' | 'medium' | 'low'
-  submitted_date: string
-  assessor?: string
-  documents_count: number
-}
-
 const mockClaims: Claim[] = [
   {
     id: '1',
     claim_number: 'CLM-2026-001',
     user: {
+      id: '1',
       name: 'John Doe',
       email: 'john@example.com'
     },
     policy: {
-      number: 'POL-2026-001',
-      type: 'Motor - Comprehensive'
+      id: '1',
+      policy_number: 'POL-2026-001',
+      policy_type: 'Motor - Comprehensive'
     },
-    amount: 150000,
+    claim_amount: 150000,
     description: 'Vehicle accident on Mombasa Road, front bumper damaged',
     status: 'pending',
     priority: 'high',
-    submitted_date: '2026-01-27T08:00:00Z',
+    submitted_at: '2026-01-27T08:00:00Z',
+    updated_at: '2026-01-27T08:00:00Z',
     documents_count: 3
   },
   {
     id: '2',
     claim_number: 'CLM-2026-002',
     user: {
+      id: '2',
       name: 'Jane Smith',
       email: 'jane@example.com'
     },
     policy: {
-      number: 'POL-2026-045',
-      type: 'Home Insurance'
+      id: '2',
+      policy_number: 'POL-2026-045',
+      policy_type: 'Home Insurance'
     },
-    amount: 80000,
+    claim_amount: 80000,
     description: 'Water damage from burst pipe in kitchen',
     status: 'under_review',
     priority: 'medium',
-    submitted_date: '2026-01-26T14:30:00Z',
-    assessor: 'Sarah Williams',
+    submitted_at: '2026-01-26T14:30:00Z',
+    updated_at: '2026-01-26T14:30:00Z',
+    assigned_to: {
+      id: '10',
+      name: 'Sarah Williams'
+    },
     documents_count: 5
   },
   {
     id: '3',
     claim_number: 'CLM-2026-003',
     user: {
+      id: '3',
       name: 'Mike Johnson',
       email: 'mike@example.com'
     },
     policy: {
-      number: 'POL-2026-089',
-      type: 'Motor - Third Party'
+      id: '3',
+      policy_number: 'POL-2026-089',
+      policy_type: 'Motor - Third Party'
     },
-    amount: 45000,
+    claim_amount: 45000,
     description: 'Minor collision at parking lot',
     status: 'approved',
     priority: 'low',
-    submitted_date: '2026-01-25T10:15:00Z',
-    assessor: 'Sarah Williams',
+    submitted_at: '2026-01-25T10:15:00Z',
+    updated_at: '2026-01-25T10:15:00Z',
+    assigned_to: {
+      id: '10',
+      name: 'Sarah Williams'
+    },
     documents_count: 2
   },
   {
     id: '4',
     claim_number: 'CLM-2026-004',
     user: {
+      id: '4',
       name: 'Emily Brown',
       email: 'emily@example.com'
     },
     policy: {
-      number: 'POL-2026-034',
-      type: 'Travel Insurance'
+      id: '4',
+      policy_number: 'POL-2026-034',
+      policy_type: 'Travel Insurance'
     },
-    amount: 25000,
+    claim_amount: 25000,
     description: 'Flight cancellation due to medical emergency',
     status: 'rejected',
     priority: 'medium',
-    submitted_date: '2026-01-24T16:00:00Z',
-    assessor: 'Sarah Williams',
+    submitted_at: '2026-01-24T16:00:00Z',
+    updated_at: '2026-01-24T16:00:00Z',
+    assigned_to: {
+      id: '10',
+      name: 'Sarah Williams'
+    },
     documents_count: 1
   },
   {
     id: '5',
     claim_number: 'CLM-2026-005',
     user: {
+      id: '5',
       name: 'David Wilson',
       email: 'david@example.com'
     },
     policy: {
-      number: 'POL-2026-012',
-      type: 'Motor - Comprehensive'
+      id: '5',
+      policy_number: 'POL-2026-012',
+      policy_type: 'Motor - Comprehensive'
     },
-    amount: 200000,
+    claim_amount: 200000,
     description: 'Total loss from fire incident',
     status: 'settled',
     priority: 'high',
-    submitted_date: '2026-01-20T09:00:00Z',
-    assessor: 'Sarah Williams',
+    submitted_at: '2026-01-20T09:00:00Z',
+    updated_at: '2026-01-20T09:00:00Z',
+    assigned_to: {
+      id: '10',
+      name: 'Sarah Williams'
+    },
     documents_count: 8
   }
 ]
@@ -193,7 +200,7 @@ export default function ClaimsPage() {
       filtered = filtered.filter(claim =>
         claim.claim_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
         claim.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        claim.policy.number.toLowerCase().includes(searchQuery.toLowerCase())
+        claim.policy.policy_number.toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
 
@@ -212,7 +219,7 @@ export default function ClaimsPage() {
     setSelectedClaim(claim)
     setAction(actionType)
     setActionReason('')
-    setAssessorName(claim.assessor || '')
+    setAssessorName(claim.assigned_to?.name || '')
     setIsActionModalOpen(true)
   }
 
@@ -244,7 +251,7 @@ export default function ClaimsPage() {
       // Update claim status
       setClaims(claims.map(c =>
         c.id === selectedClaim.id
-          ? { ...c, status: newStatus, assessor: assessorName || c.assessor }
+          ? { ...c, status: newStatus, assigned_to: assessorName ? { id: '10', name: assessorName } : c.assigned_to }
           : c
       ))
 
@@ -345,8 +352,8 @@ export default function ClaimsPage() {
 
           {/* Policy info */}
           <div className="text-sm">
-            <p className="text-muted-foreground">Policy: {claim.policy.number}</p>
-            <p className="font-medium">{claim.policy.type}</p>
+            <p className="text-muted-foreground">Policy: {claim.policy.policy_number}</p>
+            <p className="font-medium">{claim.policy.policy_type}</p>
           </div>
 
           {/* Description */}
@@ -354,15 +361,15 @@ export default function ClaimsPage() {
 
           {/* Amount & Date */}
           <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-lg">{formatCurrency(claim.amount)}</span>
-            <span className="text-muted-foreground">{formatDate(claim.submitted_date)}</span>
+            <span className="font-semibold text-lg">{formatCurrency(claim.claim_amount)}</span>
+            <span className="text-muted-foreground">{formatDate(claim.submitted_at)}</span>
           </div>
 
           {/* Assessor */}
-          {claim.assessor && (
+          {claim.assigned_to && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <UserCheck className="h-4 w-4" />
-              <span>Assigned to {claim.assessor}</span>
+              <span>Assigned to {claim.assigned_to.name}</span>
             </div>
           )}
 
@@ -542,7 +549,7 @@ export default function ClaimsPage() {
             {action === 'approve' && (
               <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-900 rounded-lg p-4">
                 <p className="text-sm text-green-800 dark:text-green-200">
-                  Are you sure you want to approve this claim for {selectedClaim && formatCurrency(selectedClaim.amount)}?
+                  Are you sure you want to approve this claim for {selectedClaim && formatCurrency(selectedClaim.claim_amount)}?
                 </p>
               </div>
             )}
