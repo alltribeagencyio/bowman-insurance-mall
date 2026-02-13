@@ -159,7 +159,7 @@ export function Navbar() {
   const displayCategories = categories.length > 0
     ? categories.map(cat => ({
         id: cat.slug,
-        name: cat.name,
+        name: cat.name.replace(' Insurance', '').replace(' insurance', ''), // Remove "Insurance" suffix if present
         icon: getCategoryIcon(cat.icon),
         href: `/policies/${cat.slug}`,
         plans: [], // Plans will be loaded from policy types in the future

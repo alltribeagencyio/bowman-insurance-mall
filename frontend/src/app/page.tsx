@@ -121,12 +121,14 @@ export default function Home() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-6xl mx-auto">
               {categories.map((category) => {
                 const Icon = iconMap[category.icon] || Shield
+                // Remove "Insurance" suffix if present to keep labels clean
+                const cleanName = category.name.replace(' Insurance', '').replace(' insurance', '')
                 return (
-                  <Link key={category.id} href={`/policies?category=${category.slug}`}>
+                  <Link key={category.id} href={`/policies/${category.slug}`}>
                     <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                       <CardContent className="pt-6 text-center">
                         <Icon className="h-10 w-10 text-primary mx-auto mb-2" />
-                        <p className="text-sm font-medium">{category.name}</p>
+                        <p className="text-sm font-medium whitespace-nowrap">{cleanName}</p>
                       </CardContent>
                     </Card>
                   </Link>
