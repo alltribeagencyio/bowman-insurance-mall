@@ -225,8 +225,8 @@ export default function UsersPage() {
     return variants[role] || 'outline'
   }
 
-  const getStatusBadge = (status: string, verified: boolean) => {
-    if (status === 'active' && verified) {
+  const getStatusBadge = (status: string) => {
+    if (status === 'active') {
       return <Badge className="gap-1"><CheckCircle className="h-3 w-3" />Active</Badge>
     }
     if (status === 'pending') {
@@ -235,7 +235,7 @@ export default function UsersPage() {
     if (status === 'suspended') {
       return <Badge variant="destructive">Suspended</Badge>
     }
-    return <Badge variant="outline">Unverified</Badge>
+    return <Badge variant="outline">{status}</Badge>
   }
 
   return (
@@ -348,7 +348,7 @@ export default function UsersPage() {
                       </Badge>
                     </td>
                     <td className="p-4">
-                      {getStatusBadge(user.status, user.verified)}
+                      {getStatusBadge(user.status)}
                     </td>
                     <td className="p-4">
                       <p className="text-sm">{user.policies_count}</p>
@@ -357,7 +357,7 @@ export default function UsersPage() {
                       <p className="text-sm font-medium">{formatCurrency(user.total_spent)}</p>
                     </td>
                     <td className="p-4">
-                      <p className="text-sm">{formatDate(user.joined)}</p>
+                      <p className="text-sm">{formatDate(user.created_at)}</p>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center justify-end gap-2">
