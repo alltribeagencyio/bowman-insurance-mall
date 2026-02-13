@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { getAllUsers } from '@/lib/api/admin'
+import { getAllUsers, type User } from '@/lib/api/admin'
 import {
   Select,
   SelectContent,
@@ -37,21 +37,6 @@ import {
   Eye
 } from 'lucide-react'
 
-interface User {
-  id: string
-  first_name: string
-  last_name: string
-  email: string
-  phone: string
-  role: 'customer' | 'staff' | 'admin'
-  status: 'active' | 'suspended' | 'pending'
-  verified: boolean
-  joined: string
-  last_login: string
-  policies_count: number
-  total_spent: number
-}
-
 // Mock data
 const mockUsers: User[] = [
   {
@@ -62,9 +47,7 @@ const mockUsers: User[] = [
     phone: '+254712345678',
     role: 'customer',
     status: 'active',
-    verified: true,
-    joined: '2025-12-15',
-    last_login: '2026-01-27T10:30:00Z',
+    created_at: '2025-12-15T00:00:00Z',
     policies_count: 3,
     total_spent: 125000
   },
@@ -76,9 +59,7 @@ const mockUsers: User[] = [
     phone: '+254723456789',
     role: 'customer',
     status: 'active',
-    verified: true,
-    joined: '2026-01-10',
-    last_login: '2026-01-26T15:20:00Z',
+    created_at: '2026-01-10T00:00:00Z',
     policies_count: 2,
     total_spent: 85000
   },
@@ -90,9 +71,7 @@ const mockUsers: User[] = [
     phone: '+254734567890',
     role: 'customer',
     status: 'pending',
-    verified: false,
-    joined: '2026-01-27',
-    last_login: '2026-01-27T08:00:00Z',
+    created_at: '2026-01-27T08:00:00Z',
     policies_count: 0,
     total_spent: 0
   },
@@ -104,9 +83,7 @@ const mockUsers: User[] = [
     phone: '+254745678901',
     role: 'staff',
     status: 'active',
-    verified: true,
-    joined: '2025-11-01',
-    last_login: '2026-01-27T09:45:00Z',
+    created_at: '2025-11-01T00:00:00Z',
     policies_count: 0,
     total_spent: 0
   },
@@ -118,9 +95,7 @@ const mockUsers: User[] = [
     phone: '+254756789012',
     role: 'customer',
     status: 'suspended',
-    verified: true,
-    joined: '2025-10-20',
-    last_login: '2026-01-15T12:00:00Z',
+    created_at: '2025-10-20T00:00:00Z',
     policies_count: 1,
     total_spent: 45000
   }
