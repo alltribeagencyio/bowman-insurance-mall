@@ -84,11 +84,11 @@ export default function ShopPage() {
     name: policy.name,
     company: policy.company_name,
     category: policy.category_name,
-    subcategory: '', // Can be derived from policy type if needed
+    subcategory: policy.category_name, // Use category as subcategory for filtering
     premium: parseFloat(policy.base_premium),
     coverage: policy.min_coverage_amount ? parseFloat(policy.min_coverage_amount) : 0,
     description: policy.description,
-    features: policy.features,
+    features: policy.features || [],
     rating: 0, // Can be calculated from reviews if available
     reviews: 0,
     popular: policy.is_featured,
