@@ -864,23 +864,26 @@ export default function PolicyDetailPage() {
                   </Card>
 
                   {/* Requirements */}
-                  {policyData.required_documents && policyData.required_documents.length > 0 && (
+                  {policyData.requirements && Object.keys(policyData.requirements).length > 0 && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <FileText className="h-5 w-5" />
-                          Required Documents
+                          Requirements
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <ul className="space-y-2">
-                          {policyData.required_documents.map((doc: string, idx: number) => (
-                            <li key={idx} className="flex items-start gap-2">
+                        <div className="space-y-2">
+                          {Object.entries(policyData.requirements).map(([key, value]: [string, any], idx: number) => (
+                            <div key={idx} className="flex items-start gap-2">
                               <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                              <span>{doc}</span>
-                            </li>
+                              <div>
+                                <span className="font-medium">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: </span>
+                                <span>{typeof value === 'object' ? JSON.stringify(value) : value}</span>
+                              </div>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
