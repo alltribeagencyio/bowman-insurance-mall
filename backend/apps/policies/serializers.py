@@ -37,6 +37,18 @@ class PolicyCategorySerializer(serializers.ModelSerializer):
         return obj.policy_types.filter(is_active=True).count()
 
 
+class PolicyTypeSerializer(serializers.ModelSerializer):
+    """Basic serializer for policy types (used by admin API)"""
+
+    class Meta:
+        model = PolicyType
+        fields = [
+            'id', 'name', 'category', 'description', 'base_premium',
+            'is_active', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+
+
 class PolicyTypeListSerializer(serializers.ModelSerializer):
     """Simplified serializer for policy type listings"""
     category_name = serializers.CharField(source='category.name', read_only=True)
