@@ -36,7 +36,6 @@ import {
   Shield,
   Eye
 } from 'lucide-react'
-import { toast } from 'sonner'
 
 interface User {
   id: string
