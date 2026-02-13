@@ -42,26 +42,7 @@ import { getPolicyTypeById } from '@/lib/api/categories'
 import { purchasePolicy } from '@/lib/api/purchase'
 import { paymentsApi } from '@/lib/api/payments'
 import { apiClient } from '@/lib/api/client'
-
-// Mock saved vehicles
-const savedVehicles = [
-  {
-    id: '1',
-    make: 'Toyota',
-    model: 'Land Cruiser',
-    year: 2024,
-    registration: 'KCE 123A',
-    value: 8500000
-  },
-  {
-    id: '2',
-    make: 'Honda',
-    model: 'Civic',
-    year: 2022,
-    registration: 'KDB 456B',
-    value: 3200000
-  }
-]
+import { getUserVehicles, createAsset, type Asset } from '@/lib/api/assets'
 
 interface PurchaseStep {
   id: string
@@ -780,6 +761,50 @@ function PersonalInfoStep({ data, onChange, isAuthenticated }: any) {
 
 function VehicleStep({ data, onChange }: any) {
   const [showNewVehicleForm, setShowNewVehicleForm] = useState(false)
+  const [vehicles, setVehicles] = useState<Asset[]>([])
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(true)
+
+  useEffect(() => {
+    loadVehicles()
+  }, [])
+
+  const loadVehicles = async () => {
+    try {
+      setIsLoadingVehicles(true)
+      const userVehicles = await getUserVehicles()
+      setVehicles(userVehicles)
+    } catch (error) {
+      console.error('Error loading vehicles:', error)
+    } finally {
+      setIsLoadingVehicles(false)
+    }
+  }
+
+  const handleSaveNewVehicle = async () => {
+    if (!data?.newVehicle) return
+
+    try {
+      const newAsset = await createAsset({
+        asset_type: 'vehicle',
+        name: `${data.newVehicle.year} ${data.newVehicle.make} ${data.newVehicle.model}`,
+        details: {
+          make: data.newVehicle.make,
+          model: data.newVehicle.model,
+          year: parseInt(data.newVehicle.year),
+          registration: data.newVehicle.registration,
+          value: parseFloat(data.newVehicle.value),
+        }
+      })
+
+      await loadVehicles()
+      onChange({ selectedVehicle: newAsset.id, newVehicle: null })
+      setShowNewVehicleForm(false)
+      toast.success('Vehicle saved successfully!')
+    } catch (error) {
+      console.error('Error saving vehicle:', error)
+      toast.error('Failed to save vehicle')
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -787,8 +812,14 @@ function VehicleStep({ data, onChange }: any) {
         <>
           <div>
             <h3 className="font-semibold mb-3">Select from Saved Vehicles</h3>
-            <div className="space-y-3">
-              {savedVehicles.map((vehicle) => (
+            {isLoadingVehicles ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-6 w-6 mx-auto animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground mt-2">Loading vehicles...</p>
+              </div>
+            ) : vehicles.length > 0 ? (
+              <div className="space-y-3">
+                {vehicles.map((vehicle) => (
                 <label
                   key={vehicle.id}
                   className={`block p-4 border-2 rounded-lg cursor-pointer transition-all ${
@@ -809,16 +840,22 @@ function VehicleStep({ data, onChange }: any) {
                     <Car className="h-5 w-5 text-primary" />
                     <div className="flex-1">
                       <div className="font-medium">
-                        {vehicle.year} {vehicle.make} {vehicle.model}
+                        {vehicle.details.year} {vehicle.details.make} {vehicle.details.model}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {vehicle.registration} • KES {vehicle.value.toLocaleString()}
+                        {vehicle.details.registration} • KES {vehicle.details.value?.toLocaleString()}
                       </div>
                     </div>
                   </div>
                 </label>
               ))}
             </div>
+            ) : (
+              <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                <Car className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">No vehicles saved yet</p>
+              </div>
+            )}
           </div>
 
           <Button
@@ -891,6 +928,14 @@ function VehicleStep({ data, onChange }: any) {
                 />
               </div>
             </div>
+
+            <Button
+              onClick={handleSaveNewVehicle}
+              className="w-full mt-4"
+              disabled={!data?.newVehicle?.make || !data?.newVehicle?.model || !data?.newVehicle?.year || !data?.newVehicle?.registration || !data?.newVehicle?.value}
+            >
+              Save Vehicle & Continue
+            </Button>
           </div>
         </>
       )}
@@ -1435,6 +1480,16 @@ function PolicyDetailsStep({ data, onChange, product }: any) {
 }
 
 function ReviewStep({ formData, product, steps }: any) {
+  const [vehicles, setVehicles] = useState<Asset[]>([])
+
+  useEffect(() => {
+    if (formData.vehicle?.selectedVehicle) {
+      getUserVehicles().then(setVehicles).catch(console.error)
+    }
+  }, [formData.vehicle])
+
+  const selectedVehicle = vehicles.find(v => v.id === formData.vehicle?.selectedVehicle)
+
   return (
     <div className="space-y-6">
       <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
@@ -1492,13 +1547,13 @@ function ReviewStep({ formData, product, steps }: any) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {formData.vehicle.selectedVehicle && (
+            {formData.vehicle.selectedVehicle && selectedVehicle && (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Selected Vehicle</p>
                 <p className="font-medium">
-                  {savedVehicles.find(v => v.id === formData.vehicle.selectedVehicle)?.make}{' '}
-                  {savedVehicles.find(v => v.id === formData.vehicle.selectedVehicle)?.model} (
-                  {savedVehicles.find(v => v.id === formData.vehicle.selectedVehicle)?.registration})
+                  {selectedVehicle.details.make}{' '}
+                  {selectedVehicle.details.model} (
+                  {selectedVehicle.details.registration})
                 </p>
               </div>
             )}
