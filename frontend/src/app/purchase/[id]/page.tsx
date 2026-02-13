@@ -12,6 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
   ArrowLeft,
   ArrowRight,
   Check,
@@ -24,13 +32,16 @@ import {
   CreditCard,
   CheckCircle2,
   Plus,
-  Edit2
+  Edit2,
+  Loader2,
+  X
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth/auth-context'
 import { getPolicyTypeById } from '@/lib/api/categories'
 import { purchasePolicy } from '@/lib/api/purchase'
 import { paymentsApi } from '@/lib/api/payments'
+import { apiClient } from '@/lib/api/client'
 
 // Mock saved vehicles
 const savedVehicles = [
@@ -58,6 +69,203 @@ interface PurchaseStep {
   description: string
 }
 
+// Login/Register Modal Component
+function AuthModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
+  const { login } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  const [loginData, setLoginData] = useState({ email: '', password: '' })
+  const [registerData, setRegisterData] = useState({
+    email: '',
+    password: '',
+    password2: '',
+    first_name: '',
+    last_name: '',
+    phone_number: '',
+  })
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    try {
+      await login(loginData.email, loginData.password)
+      toast.success('Login successful!')
+      onSuccess()
+      onClose()
+    } catch (error: any) {
+      toast.error(error.message || 'Login failed. Please check your credentials.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (registerData.password !== registerData.password2) {
+      toast.error('Passwords do not match')
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const response = await apiClient.post('/auth/register/', registerData)
+      const { user: userData, tokens: tokenData } = response.data
+
+      // Store tokens
+      localStorage.setItem('auth_tokens', JSON.stringify(tokenData))
+      localStorage.setItem('access_token', tokenData.access)
+      localStorage.setItem('refresh_token', tokenData.refresh)
+      localStorage.setItem('user', JSON.stringify(userData))
+
+      toast.success('Account created successfully!')
+      onSuccess()
+      onClose()
+
+      // Reload to update auth context
+      window.location.reload()
+    } catch (error: any) {
+      console.error('Registration failed:', error)
+      toast.error(error.response?.data?.message || error.response?.data?.email?.[0] || 'Registration failed')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Sign In or Create Account</DialogTitle>
+          <DialogDescription>
+            You need to be logged in to complete your purchase
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="register">Create Account</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="login">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="login-email">Email</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={loginData.email}
+                  onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="login-password">Password</Label>
+                <Input
+                  id="login-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Signing in...</> : 'Sign In'}
+              </Button>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="register">
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="register-firstname">First Name</Label>
+                  <Input
+                    id="register-firstname"
+                    placeholder="John"
+                    value={registerData.first_name}
+                    onChange={(e) => setRegisterData({ ...registerData, first_name: e.target.value })}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-lastname">Last Name</Label>
+                  <Input
+                    id="register-lastname"
+                    placeholder="Doe"
+                    value={registerData.last_name}
+                    onChange={(e) => setRegisterData({ ...registerData, last_name: e.target.value })}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-email">Email</Label>
+                <Input
+                  id="register-email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={registerData.email}
+                  onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-phone">Phone Number</Label>
+                <Input
+                  id="register-phone"
+                  type="tel"
+                  placeholder="+254 700 000 000"
+                  value={registerData.phone_number}
+                  onChange={(e) => setRegisterData({ ...registerData, phone_number: e.target.value })}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-password">Password</Label>
+                <Input
+                  id="register-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={registerData.password}
+                  onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-password2">Confirm Password</Label>
+                <Input
+                  id="register-password2"
+                  type="password"
+                  placeholder="••••••••"
+                  value={registerData.password2}
+                  onChange={(e) => setRegisterData({ ...registerData, password2: e.target.value })}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating account...</> : 'Create Account'}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function PurchasePage() {
   const params = useParams()
   const router = useRouter()
@@ -65,6 +273,7 @@ export default function PurchasePage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState<any>({})
   const [product, setProduct] = useState<any>(null)
+  const [showAuthModal, setShowAuthModal] = useState(false)
 
   useEffect(() => {
     // Load product from API first (available to everyone)
@@ -224,15 +433,11 @@ export default function PurchasePage() {
   const handleSubmit = async () => {
     // Check authentication before submitting
     if (!isAuthenticated) {
-      toast.error('Please login to purchase insurance')
-      // Save current progress to sessionStorage
-      sessionStorage.setItem('purchase_form_data', JSON.stringify(formData))
-      sessionStorage.setItem('purchase_policy_id', params.id as string)
-      router.push(`/login?redirect=/purchase/${params.id}`)
+      setShowAuthModal(true)
       return
     }
 
-    try {
+    try{
       // Calculate dates
       const startDate = new Date()
       startDate.setDate(startDate.getDate() + 1) // Start tomorrow
@@ -303,10 +508,7 @@ export default function PurchasePage() {
       // Handle specific error cases
       if (error.response?.status === 401) {
         toast.error('Your session has expired. Please login again.')
-        // Save current progress
-        sessionStorage.setItem('purchase_form_data', JSON.stringify(formData))
-        sessionStorage.setItem('purchase_policy_id', params.id as string)
-        router.push(`/login?redirect=/purchase/${params.id}`)
+        setShowAuthModal(true)
       } else {
         toast.error(error.response?.data?.message || 'Failed to purchase policy. Please try again.')
       }
@@ -325,7 +527,7 @@ export default function PurchasePage() {
 
     switch (stepId) {
       case 'personal':
-        return <PersonalInfoStep data={formData.personal} onChange={(data: any) => updateFormData('personal', data)} />
+        return <PersonalInfoStep data={formData.personal} onChange={(data: any) => updateFormData('personal', data)} isAuthenticated={isAuthenticated} />
 
       case 'vehicle':
         return <VehicleStep data={formData.vehicle} onChange={(data: any) => updateFormData('vehicle', data)} />
@@ -361,6 +563,16 @@ export default function PurchasePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => {
+          // Form data is already filled, user can continue
+          toast.success('You can now continue with your purchase!')
+        }}
+      />
+
       {/* Header */}
       <div className="border-b bg-white dark:bg-gray-900">
         <div className="container mx-auto px-4 py-4">
@@ -386,11 +598,7 @@ export default function PurchasePage() {
                     <p className="text-sm text-muted-foreground mb-3">
                       You can fill out the application form, but you'll need to login before submitting your purchase.
                     </p>
-                    <Button size="sm" onClick={() => {
-                      sessionStorage.setItem('purchase_form_data', JSON.stringify(formData))
-                      sessionStorage.setItem('purchase_policy_id', params.id as string)
-                      router.push(`/login?redirect=/purchase/${params.id}`)
-                    }}>
+                    <Button size="sm" onClick={() => setShowAuthModal(true)}>
                       Login Now
                     </Button>
                   </div>
@@ -501,7 +709,7 @@ export default function PurchasePage() {
 
 // Step Components
 
-function PersonalInfoStep({ data, onChange }: any) {
+function PersonalInfoStep({ data, onChange, isAuthenticated }: any) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

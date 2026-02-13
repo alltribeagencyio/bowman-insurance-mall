@@ -241,16 +241,31 @@ function DashboardContent() {
         setIsLoading(true)
         const data = await getDashboardData()
         setDashboardData(data)
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching dashboard data:', error)
-        toast.error('Failed to load dashboard data. Please refresh the page.')
+
+        // Only show error toast for non-401 errors
+        if (error.response?.status !== 401) {
+          toast.error('Failed to load dashboard data')
+        }
+
         // Use mock data as fallback
         setDashboardData({
           stats: mockDashboardData,
-          recentActivity: [],
-          recommendations: [],
-          upcomingPayments: [],
-          expiringPolicies: []
+          recentActivity: mockDashboardData.recentActivity,
+          recommendations: mockDashboardData.recommendations,
+          upcomingPayments: mockDashboardData.upcomingPayments.map(p => ({
+            id: p.id,
+            policy: {
+              id: p.id,
+              policy_number: `POL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+              policy_type: p.policyName
+            },
+            amount: p.amount,
+            due_date: p.dueDate,
+            is_overdue: p.daysUntil < 0
+          })),
+          expiringPolicies: mockDashboardData.expiringPolicies
         })
       } finally {
         setIsLoading(false)
