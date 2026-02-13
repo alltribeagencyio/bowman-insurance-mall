@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,12 +11,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { toast } from 'sonner'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, isAuthenticated } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   })
+
+  const redirectUrl = searchParams.get('redirect')
+
+  // If already authenticated, redirect
+  useEffect(() => {
+    if (isAuthenticated && redirectUrl) {
+      router.push(redirectUrl)
+    }
+  }, [isAuthenticated, redirectUrl, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,6 +36,11 @@ export default function LoginPage() {
     try {
       await login(formData.email, formData.password)
       toast.success('Login successful!')
+
+      // Redirect to the saved URL or dashboard
+      if (redirectUrl) {
+        setTimeout(() => router.push(redirectUrl), 500)
+      }
     } catch (error: any) {
       toast.error(error.message || 'Login failed. Please check your credentials.')
     } finally {
@@ -45,7 +62,10 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold">Welcome Back</h2>
           <p className="text-muted-foreground mt-2">
-            Sign in to your account
+            {redirectUrl
+              ? 'Please sign in to continue with your purchase'
+              : 'Sign in to your account'
+            }
           </p>
         </div>
 

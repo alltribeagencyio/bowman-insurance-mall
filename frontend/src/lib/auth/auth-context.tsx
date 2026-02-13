@@ -79,8 +79,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (tokens) {
       localStorage.setItem('auth_tokens', JSON.stringify(tokens))
+      // Also store in format expected by apiClient
+      localStorage.setItem('access_token', tokens.access)
+      localStorage.setItem('refresh_token', tokens.refresh)
     } else {
       localStorage.removeItem('auth_tokens')
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
     }
   }, [tokens])
 

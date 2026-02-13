@@ -67,13 +67,7 @@ export default function PurchasePage() {
   const [product, setProduct] = useState<any>(null)
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      toast.error('Please login to purchase insurance')
-      router.push(`/login?redirect=/purchase/${params.id}`)
-      return
-    }
-
-    // Load product from API
+    // Load product from API first (available to everyone)
     const loadProduct = async () => {
       try {
         const policyType = await getPolicyTypeById(params.id as string)
@@ -95,8 +89,22 @@ export default function PurchasePage() {
 
     loadProduct()
 
-    // Pre-fill user data
-    if (user) {
+    // Restore saved form data if returning from login
+    const savedFormData = sessionStorage.getItem('purchase_form_data')
+    const savedPolicyId = sessionStorage.getItem('purchase_policy_id')
+
+    if (savedFormData && savedPolicyId === params.id && isAuthenticated) {
+      try {
+        const parsed = JSON.parse(savedFormData)
+        setFormData(parsed)
+        toast.success('Welcome back! Your progress has been restored.')
+        sessionStorage.removeItem('purchase_form_data')
+        sessionStorage.removeItem('purchase_policy_id')
+      } catch (error) {
+        console.error('Failed to restore form data:', error)
+      }
+    } else if (user && !savedFormData) {
+      // Pre-fill user data if authenticated and no saved data
       setFormData((prev: any) => ({
         ...prev,
         personal: {
@@ -109,7 +117,7 @@ export default function PurchasePage() {
         }
       }))
     }
-  }, [params.id, isAuthenticated, user, router])
+  }, [params.id, user, isAuthenticated])
 
   if (!product) {
     return <div>Loading...</div>
@@ -214,6 +222,16 @@ export default function PurchasePage() {
   }
 
   const handleSubmit = async () => {
+    // Check authentication before submitting
+    if (!isAuthenticated) {
+      toast.error('Please login to purchase insurance')
+      // Save current progress to sessionStorage
+      sessionStorage.setItem('purchase_form_data', JSON.stringify(formData))
+      sessionStorage.setItem('purchase_policy_id', params.id as string)
+      router.push(`/login?redirect=/purchase/${params.id}`)
+      return
+    }
+
     try {
       // Calculate dates
       const startDate = new Date()
@@ -270,6 +288,10 @@ export default function PurchasePage() {
 
       toast.success('Policy created! Redirecting to payment...')
 
+      // Clear saved form data
+      sessionStorage.removeItem('purchase_form_data')
+      sessionStorage.removeItem('purchase_policy_id')
+
       // Redirect to payment page
       setTimeout(() => {
         router.push(`/payment/${policy.id}`)
@@ -277,7 +299,17 @@ export default function PurchasePage() {
 
     } catch (error: any) {
       console.error('Error purchasing policy:', error)
-      toast.error(error.response?.data?.message || 'Failed to purchase policy. Please try again.')
+
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        toast.error('Your session has expired. Please login again.')
+        // Save current progress
+        sessionStorage.setItem('purchase_form_data', JSON.stringify(formData))
+        sessionStorage.setItem('purchase_policy_id', params.id as string)
+        router.push(`/login?redirect=/purchase/${params.id}`)
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to purchase policy. Please try again.')
+      }
     }
   }
 
@@ -343,6 +375,30 @@ export default function PurchasePage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
+          {/* Authentication Notice */}
+          {!isAuthenticated && (
+            <Card className="mb-6 border-primary/50 bg-primary/5">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <Shield className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold mb-1">Login Required</h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      You can fill out the application form, but you'll need to login before submitting your purchase.
+                    </p>
+                    <Button size="sm" onClick={() => {
+                      sessionStorage.setItem('purchase_form_data', JSON.stringify(formData))
+                      sessionStorage.setItem('purchase_policy_id', params.id as string)
+                      router.push(`/login?redirect=/purchase/${params.id}`)
+                    }}>
+                      Login Now
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Product Info */}
           <Card className="mb-8">
             <CardContent className="pt-6">
