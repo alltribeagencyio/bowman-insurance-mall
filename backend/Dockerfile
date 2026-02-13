@@ -21,8 +21,12 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy project
 COPY . /app/
 
-# Collect static files
+# Collect static files (skip if fails - will run in production)
 RUN python manage.py collectstatic --noinput || true
 
-# Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "bowman_insurance.wsgi:application"]
+# Expose port
+EXPOSE 8000
+
+# Run migrations and start gunicorn
+CMD python manage.py migrate --noinput && \
+    gunicorn bowman_insurance.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile - --error-logfile -
