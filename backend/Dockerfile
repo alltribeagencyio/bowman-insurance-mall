@@ -31,6 +31,7 @@ RUN python manage.py collectstatic --noinput || true
 # Expose port
 EXPOSE 8000
 
-# Run migrations and start gunicorn
-CMD python manage.py migrate --noinput && \
+# Run makemigrations, migrations and start gunicorn
+CMD python manage.py makemigrations --noinput && \
+    python manage.py migrate --noinput && \
     gunicorn bowman_insurance.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile - --error-logfile -
