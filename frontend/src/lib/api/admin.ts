@@ -128,11 +128,42 @@ export interface ReportData {
   }
 }
 
+// ==================== Caching ====================
+
+let adminDashboardCache: { data: AdminDashboardData; timestamp: number } | null = null
+let usersCache: { data: { results: User[]; count: number }; timestamp: number; params: string } | null = null
+let claimsCache: { data: { results: Claim[]; count: number }; timestamp: number; params: string } | null = null
+let transactionsCache: { data: { results: Transaction[]; count: number }; timestamp: number; params: string } | null = null
+const CACHE_DURATION = 60000 // 1 minute
+
+export const clearAdminCaches = () => {
+  adminDashboardCache = null
+  usersCache = null
+  claimsCache = null
+  transactionsCache = null
+}
+
 // ==================== Dashboard ====================
 
-export const getAdminDashboard = async (): Promise<AdminDashboardData> => {
+export const getAdminDashboard = async (forceRefresh = false): Promise<AdminDashboardData> => {
+  // Check cache first
+  if (!forceRefresh && adminDashboardCache) {
+    const now = Date.now()
+    if (now - adminDashboardCache.timestamp < CACHE_DURATION) {
+      return adminDashboardCache.data
+    }
+  }
+
   const response = await apiClient.get('/api/v1/admin/dashboard/')
-  return response.data
+  const data = response.data
+
+  // Update cache
+  adminDashboardCache = {
+    data,
+    timestamp: Date.now()
+  }
+
+  return data
 }
 
 // ==================== User Management ====================
@@ -142,9 +173,28 @@ export const getAllUsers = async (params?: {
   role?: string
   status?: string
   page?: number
-}): Promise<{ results: User[]; count: number }> => {
+}, forceRefresh = false): Promise<{ results: User[]; count: number }> => {
+  const paramsKey = JSON.stringify(params || {})
+
+  // Check cache first
+  if (!forceRefresh && usersCache && usersCache.params === paramsKey) {
+    const now = Date.now()
+    if (now - usersCache.timestamp < CACHE_DURATION) {
+      return usersCache.data
+    }
+  }
+
   const response = await apiClient.get('/api/v1/admin/users/', { params })
-  return response.data
+  const data = response.data
+
+  // Update cache
+  usersCache = {
+    data,
+    timestamp: Date.now(),
+    params: paramsKey
+  }
+
+  return data
 }
 
 export const getUserById = async (userId: string): Promise<User> => {
@@ -188,9 +238,28 @@ export const getAllClaims = async (params?: {
   priority?: string
   assigned_to?: string
   page?: number
-}): Promise<{ results: Claim[]; count: number }> => {
+}, forceRefresh = false): Promise<{ results: Claim[]; count: number }> => {
+  const paramsKey = JSON.stringify(params || {})
+
+  // Check cache first
+  if (!forceRefresh && claimsCache && claimsCache.params === paramsKey) {
+    const now = Date.now()
+    if (now - claimsCache.timestamp < CACHE_DURATION) {
+      return claimsCache.data
+    }
+  }
+
   const response = await apiClient.get('/api/v1/admin/claims/', { params })
-  return response.data
+  const data = response.data
+
+  // Update cache
+  claimsCache = {
+    data,
+    timestamp: Date.now(),
+    params: paramsKey
+  }
+
+  return data
 }
 
 export const getClaimById = async (claimId: string): Promise<Claim> => {
@@ -296,9 +365,28 @@ export const getAllTransactions = async (params?: {
   date_from?: string
   date_to?: string
   page?: number
-}): Promise<{ results: Transaction[]; count: number }> => {
+}, forceRefresh = false): Promise<{ results: Transaction[]; count: number }> => {
+  const paramsKey = JSON.stringify(params || {})
+
+  // Check cache first
+  if (!forceRefresh && transactionsCache && transactionsCache.params === paramsKey) {
+    const now = Date.now()
+    if (now - transactionsCache.timestamp < CACHE_DURATION) {
+      return transactionsCache.data
+    }
+  }
+
   const response = await apiClient.get('/api/v1/admin/transactions/', { params })
-  return response.data
+  const data = response.data
+
+  // Update cache
+  transactionsCache = {
+    data,
+    timestamp: Date.now(),
+    params: paramsKey
+  }
+
+  return data
 }
 
 export const getTransactionById = async (transactionId: string): Promise<Transaction> => {
