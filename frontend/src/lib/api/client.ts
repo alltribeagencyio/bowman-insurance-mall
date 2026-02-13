@@ -27,19 +27,17 @@ apiClient.interceptors.request.use(
 // Response interceptor - handle token refresh
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`✓ API Success: ${response.config.method?.toUpperCase()} ${response.config.url}`, {
-      status: response.status,
-      data: response.data
-    })
+    // Only log in development, without full data payload
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✓ ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`)
+    }
     return response
   },
   async (error) => {
-    console.error(`✗ API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      message: error.message
-    })
+    // Only log errors in development, without full data payload
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`✗ ${error.config?.method?.toUpperCase()} ${error.config?.url} - ${error.response?.status || 'Network Error'}`)
+    }
 
     const originalRequest = error.config
 

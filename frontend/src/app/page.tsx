@@ -33,39 +33,17 @@ export default function Home() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        console.log('Fetching categories and featured policies...')
 
         const [categoriesData, featuredData] = await Promise.all([
-          getCategories().catch(err => {
-            console.error('Failed to fetch categories:', err)
-            console.error('Categories error details:', {
-              message: err.message,
-              response: err.response?.data,
-              status: err.response?.status,
-              url: err.config?.url
-            })
-            throw err
-          }),
-          getFeaturedPolicies().catch(err => {
-            console.error('Failed to fetch featured policies:', err)
-            console.error('Featured policies error details:', {
-              message: err.message,
-              response: err.response?.data,
-              status: err.response?.status,
-              url: err.config?.url
-            })
-            throw err
-          })
+          getCategories(),
+          getFeaturedPolicies()
         ])
-
-        console.log('Categories loaded:', categoriesData?.length || 0)
-        console.log('Featured policies loaded:', featuredData?.length || 0)
 
         setCategories(categoriesData || [])
         setFeaturedPolicies(featuredData || [])
       } catch (error: any) {
-        console.error('Error fetching homepage data:', error)
-        toast.error(`Failed to load policies: ${error.message || 'Unknown error'}`)
+        console.error('Failed to load homepage data')
+        toast.error('Failed to load policies. Please refresh the page.')
       } finally {
         setLoading(false)
       }
