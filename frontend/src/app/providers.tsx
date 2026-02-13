@@ -24,7 +24,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <SidebarProvider>
           {children}
-          <Toaster position="top-right" />
+          <Toaster
+            position="bottom-right"
+            closeButton
+            richColors
+            toastOptions={{
+              duration: 5000,
+              style: {
+                marginBottom: '1rem',
+              },
+            }}
+          />
         </SidebarProvider>
       </AuthProvider>
     </QueryClientProvider>
