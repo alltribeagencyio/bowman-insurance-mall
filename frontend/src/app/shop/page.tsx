@@ -82,8 +82,8 @@ export default function ShopPage() {
   const shopProducts = products.map(policy => ({
     id: policy.id,
     name: policy.name,
-    company: policy.insurance_company.name,
-    category: policy.category.name,
+    company: policy.company_name,
+    category: policy.category_name,
     subcategory: '', // Can be derived from policy type if needed
     premium: parseFloat(policy.base_premium),
     coverage: policy.min_coverage_amount ? parseFloat(policy.min_coverage_amount) : 0,

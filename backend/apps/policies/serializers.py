@@ -64,7 +64,7 @@ class PolicyTypeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = PolicyType
         fields = [
-            'id', 'name', 'slug', 'category_name', 'company_name',
+            'id', 'name', 'slug', 'description', 'category_name', 'company_name',
             'company_logo', 'company_rating', 'base_premium',
             'min_coverage_amount', 'max_coverage_amount',
             'is_featured', 'features', 'status'

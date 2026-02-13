@@ -145,12 +145,12 @@ export default function Home() {
                       <div>
                         <CardTitle className="text-lg">{policy.name}</CardTitle>
                         <CardDescription className="mt-1">
-                          {policy.insurance_company.name}
+                          {policy.company_name}
                         </CardDescription>
                       </div>
                     </div>
                     <div className="inline-block px-2 py-1 rounded text-xs bg-primary/10 text-primary">
-                      {policy.category.name}
+                      {policy.category_name}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">

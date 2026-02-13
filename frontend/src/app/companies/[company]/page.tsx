@@ -28,17 +28,12 @@ export default function CompanyPage({ params }: CompanyPageProps) {
       try {
         setIsLoading(true)
 
-        // Fetch company info and all products in parallel
-        const [companyData, allPolicies, companiesData] = await Promise.all([
+        // Fetch company info and products for this company
+        const [companyData, companyPolicies, companiesData] = await Promise.all([
           getCompanyById(companyId),
-          getPolicyTypes(),
+          getPolicyTypes({ company: companyId }),
           getInsuranceCompanies()
         ])
-
-        // Filter products for this specific company
-        const companyPolicies = allPolicies.filter(
-          p => p.insurance_company.id === companyId
-        )
 
         setCompany(companyData)
         setProducts(companyPolicies)
@@ -90,8 +85,8 @@ export default function CompanyPage({ params }: CompanyPageProps) {
   const shopProducts = products.map(policy => ({
     id: policy.id,
     name: policy.name,
-    company: policy.insurance_company.name,
-    category: policy.category.name,
+    company: policy.company_name,
+    category: policy.category_name,
     subcategory: '',
     premium: parseFloat(policy.base_premium),
     coverage: policy.min_coverage_amount ? parseFloat(policy.min_coverage_amount) : 0,

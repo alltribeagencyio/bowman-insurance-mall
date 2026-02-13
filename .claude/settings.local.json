@@ -30,7 +30,18 @@
       "Bash(python manage.py show_urls:*)",
       "Bash(find apps -name \"serializers.py\" -type f -exec sh -c 'echo \"\"=== {} ===\"\" && wc -l \"\"{}\"\"' ;)",
       "Bash(py:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(python manage.py runserver:*)",
+      "Bash(python3 manage.py runserver:*)",
+      "Bash(python manage.py populate_sample_data:*)",
+      "Bash(python3:*)",
+      "Bash(timeout 30 git push:*)",
+      "Bash(docker ps:*)"
     ]
   }
 }

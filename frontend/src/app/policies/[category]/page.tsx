@@ -87,7 +87,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
   const shopProducts = products.map(policy => ({
     id: policy.id,
     name: policy.name,
-    company: policy.insurance_company.name,
+    company: policy.company_name,
     category: categoryInfo?.name || category,
     subcategory: '', // Can be derived from policy type if needed
     premium: parseFloat(policy.base_premium),

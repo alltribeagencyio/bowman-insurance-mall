@@ -13,12 +13,12 @@ export interface PolicyCategory {
 export interface InsuranceCompany {
   id: string
   name: string
-  code: string
   logo?: string
   rating?: number
   description?: string
   contact_email: string
   contact_phone: string
+  website?: string
   is_active: boolean
 }
 
@@ -27,36 +27,57 @@ export interface PolicyType {
   name: string
   slug: string
   description: string
+  category_name: string
+  company_name: string
+  company_logo?: string
+  company_rating?: string
+  base_premium: string
+  min_coverage_amount?: string
+  max_coverage_amount?: string
+  features: string[]
+  status: string
+  is_featured: boolean
+}
+
+export interface PolicyTypeDetail {
+  id: string
+  name: string
+  slug: string
+  description: string
   category: {
     id: string
     name: string
     slug: string
+    description: string
+    icon: string
+    policy_count: number
   }
   insurance_company: {
     id: string
     name: string
     logo?: string
+    rating?: number
+    description?: string
+    contact_email: string
+    contact_phone: string
+    website?: string
+    is_active: boolean
   }
   base_premium: string
-  min_coverage_amount?: string
-  max_coverage_amount?: string
+  coverage_details?: any
   features: string[]
   exclusions: string[]
+  requirements?: any
   terms_and_conditions?: string
-  is_featured: boolean
+  min_coverage_amount?: string
+  max_coverage_amount?: string
+  min_age?: number
+  max_age?: number
+  status: string
   is_active: boolean
+  is_featured: boolean
   created_at: string
-}
-
-export interface PolicyTypeDetail extends PolicyType {
-  coverage_details?: any
-  required_documents?: string[]
-  eligibility_criteria?: string[]
-  claim_process?: string[]
-  faqs?: Array<{
-    question: string
-    answer: string
-  }>
+  updated_at: string
 }
 
 export interface PolicyReview {
