@@ -194,19 +194,9 @@ export default function Home() {
                       </div>
                     )}
 
-                    {policy.features && Array.isArray(policy.features) && policy.features.length > 0 && (
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-2">Key Features</p>
-                        <ul className="space-y-1">
-                          {policy.features.slice(0, 3).map((feature, idx) => (
-                            <li key={idx} className="text-sm flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                              {feature}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {policy.description}
+                    </p>
                   </CardContent>
                   <CardFooter className="flex gap-2">
                     <Button variant="outline" className="flex-1" asChild>

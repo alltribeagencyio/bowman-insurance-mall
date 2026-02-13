@@ -116,37 +116,37 @@ class Command(BaseCommand):
         """Create sample policy categories"""
         categories_data = [
             {
-                'name': 'Motor Insurance',
+                'name': 'Motor',
                 'slug': 'motor',
                 'description': 'Comprehensive coverage for your vehicles',
                 'icon': 'Car',
             },
             {
-                'name': 'Health Insurance',
+                'name': 'Health',
                 'slug': 'health',
                 'description': 'Medical and health coverage for you and your family',
                 'icon': 'Heart',
             },
             {
-                'name': 'Life Insurance',
+                'name': 'Life',
                 'slug': 'life',
                 'description': 'Financial protection for your loved ones',
                 'icon': 'Users',
             },
             {
-                'name': 'Home Insurance',
+                'name': 'Home',
                 'slug': 'home',
                 'description': 'Protect your property and belongings',
                 'icon': 'Home',
             },
             {
-                'name': 'Travel Insurance',
+                'name': 'Travel',
                 'slug': 'travel',
                 'description': 'Stay covered wherever you go',
                 'icon': 'Plane',
             },
             {
-                'name': 'Business Insurance',
+                'name': 'Business',
                 'slug': 'business',
                 'description': 'Comprehensive coverage for your business',
                 'icon': 'Briefcase',
@@ -159,6 +159,10 @@ class Command(BaseCommand):
                 slug=data['slug'],
                 defaults=data
             )
+            # Update name if category already exists
+            if not created:
+                category.name = data['name']
+                category.save()
             categories.append(category)
 
         return categories
