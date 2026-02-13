@@ -46,7 +46,7 @@ class Command(BaseCommand):
                 password='Admin123!',
                 first_name='Admin',
                 last_name='User',
-                phone_number='+254700000000'
+                phone='+254700000000'
             )
             self.stdout.write(self.style.SUCCESS('✓ Created admin user (admin@bowman.co.ke / Admin123!)'))
         else:
@@ -57,55 +57,55 @@ class Command(BaseCommand):
         companies_data = [
             {
                 'name': 'Jubilee Insurance',
-                'code': 'JUB',
                 'description': 'Leading insurance provider in East Africa with over 80 years of experience',
                 'logo': 'https://via.placeholder.com/200x80/0066cc/ffffff?text=Jubilee',
                 'website': 'https://jubileeinsurance.com',
                 'contact_email': 'info@jubilee.co.ke',
                 'contact_phone': '+254-20-3283000',
+                'rating': Decimal('4.5'),
             },
             {
                 'name': 'AAR Insurance',
-                'code': 'AAR',
                 'description': 'Comprehensive health and medical insurance solutions',
                 'logo': 'https://via.placeholder.com/200x80/cc0000/ffffff?text=AAR',
                 'website': 'https://aar-insurance.com',
                 'contact_email': 'info@aar.co.ke',
                 'contact_phone': '+254-20-2717100',
+                'rating': Decimal('4.3'),
             },
             {
                 'name': 'Britam Insurance',
-                'code': 'BRI',
                 'description': 'Diversified financial services group offering insurance and asset management',
                 'logo': 'https://via.placeholder.com/200x80/ff6600/ffffff?text=Britam',
                 'website': 'https://britam.com',
                 'contact_email': 'info@britam.co.ke',
                 'contact_phone': '+254-20-2806000',
+                'rating': Decimal('4.6'),
             },
             {
                 'name': 'CIC Insurance',
-                'code': 'CIC',
                 'description': 'Trusted insurance partner for individuals and businesses',
                 'logo': 'https://via.placeholder.com/200x80/009933/ffffff?text=CIC',
                 'website': 'https://cic.co.ke',
                 'contact_email': 'info@cic.co.ke',
                 'contact_phone': '+254-20-2829000',
+                'rating': Decimal('4.4'),
             },
             {
                 'name': 'Madison Insurance',
-                'code': 'MAD',
                 'description': 'Innovative insurance solutions for modern lifestyles',
                 'logo': 'https://via.placeholder.com/200x80/6600cc/ffffff?text=Madison',
                 'website': 'https://madison.co.ke',
                 'contact_email': 'info@madison.co.ke',
                 'contact_phone': '+254-20-2808000',
+                'rating': Decimal('4.2'),
             },
         ]
 
         companies = []
         for data in companies_data:
             company, created = InsuranceCompany.objects.get_or_create(
-                code=data['code'],
+                name=data['name'],
                 defaults=data
             )
             companies.append(company)
