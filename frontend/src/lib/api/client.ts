@@ -26,8 +26,21 @@ apiClient.interceptors.request.use(
 
 // Response interceptor - handle token refresh
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`✓ API Success: ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+      status: response.status,
+      data: response.data
+    })
+    return response
+  },
   async (error) => {
+    console.error(`✗ API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message
+    })
+
     const originalRequest = error.config
 
     // If error is 401 and we haven't retried yet
