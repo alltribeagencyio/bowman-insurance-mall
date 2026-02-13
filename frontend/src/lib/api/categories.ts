@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import { cacheManager } from '@/lib/cache/cache-manager'
 
 export interface PolicyCategory {
   id: string
@@ -101,11 +102,22 @@ export interface PolicyTypeFilters {
   search?: string
 }
 
-// Get all policy categories
+// Get all policy categories (cached for 10 minutes)
 export const getCategories = async (): Promise<PolicyCategory[]> => {
-  const response = await apiClient.get('/policies/categories/')
-  // Handle paginated response
-  return response.data.results || response.data
+  const cacheKey = '/policies/categories/'
+
+  // Check cache first
+  const cached = cacheManager.get<PolicyCategory[]>(cacheKey)
+  if (cached) return cached
+
+  // Fetch from API
+  const response = await apiClient.get(cacheKey)
+  const data = response.data.results || response.data
+
+  // Cache for 10 minutes (categories don't change often)
+  cacheManager.set(cacheKey, data, undefined, 10 * 60 * 1000)
+
+  return data
 }
 
 // Get category by slug
@@ -114,11 +126,22 @@ export const getCategoryBySlug = async (slug: string): Promise<PolicyCategory> =
   return response.data
 }
 
-// Get all insurance companies
+// Get all insurance companies (cached for 10 minutes)
 export const getInsuranceCompanies = async (): Promise<InsuranceCompany[]> => {
-  const response = await apiClient.get('/policies/companies/')
-  // Handle paginated response
-  return response.data.results || response.data
+  const cacheKey = '/policies/companies/'
+
+  // Check cache first
+  const cached = cacheManager.get<InsuranceCompany[]>(cacheKey)
+  if (cached) return cached
+
+  // Fetch from API
+  const response = await apiClient.get(cacheKey)
+  const data = response.data.results || response.data
+
+  // Cache for 10 minutes
+  cacheManager.set(cacheKey, data, undefined, 10 * 60 * 1000)
+
+  return data
 }
 
 // Get insurance company by ID
@@ -127,35 +150,77 @@ export const getCompanyById = async (id: string): Promise<InsuranceCompany> => {
   return response.data
 }
 
-// Get all policy types (with optional filters)
+// Get all policy types (with optional filters) - cached for 3 minutes
 export const getPolicyTypes = async (filters?: PolicyTypeFilters): Promise<PolicyType[]> => {
-  const response = await apiClient.get('/policies/types/', {
-    params: filters
-  })
-  // Handle paginated response
-  return response.data.results || response.data
+  const cacheKey = '/policies/types/'
+
+  // Check cache first
+  const cached = cacheManager.get<PolicyType[]>(cacheKey, filters)
+  if (cached) return cached
+
+  // Fetch from API
+  const response = await apiClient.get(cacheKey, { params: filters })
+  const data = response.data.results || response.data
+
+  // Cache for 3 minutes (policies change more frequently)
+  cacheManager.set(cacheKey, data, filters, 3 * 60 * 1000)
+
+  return data
 }
 
-// Get featured policy types
+// Get featured policy types (cached for 5 minutes)
 export const getFeaturedPolicies = async (): Promise<PolicyType[]> => {
-  const response = await apiClient.get('/policies/types/featured/')
-  // Handle paginated response (custom action may return array directly)
-  return response.data.results || response.data
+  const cacheKey = '/policies/types/featured/'
+
+  // Check cache first
+  const cached = cacheManager.get<PolicyType[]>(cacheKey)
+  if (cached) return cached
+
+  // Fetch from API
+  const response = await apiClient.get(cacheKey)
+  const data = response.data.results || response.data
+
+  // Cache for 5 minutes
+  cacheManager.set(cacheKey, data, undefined, 5 * 60 * 1000)
+
+  return data
 }
 
-// Get policy type by ID
+// Get policy type by ID (cached for 5 minutes)
 export const getPolicyTypeById = async (id: string): Promise<PolicyTypeDetail> => {
-  const response = await apiClient.get(`/policies/types/${id}/`)
-  return response.data
+  const cacheKey = `/policies/types/${id}/`
+
+  // Check cache first
+  const cached = cacheManager.get<PolicyTypeDetail>(cacheKey)
+  if (cached) return cached
+
+  // Fetch from API
+  const response = await apiClient.get(cacheKey)
+  const data = response.data
+
+  // Cache for 5 minutes
+  cacheManager.set(cacheKey, data, undefined, 5 * 60 * 1000)
+
+  return data
 }
 
-// Get policy types by category
+// Get policy types by category (cached for 3 minutes)
 export const getPolicyTypesByCategory = async (categorySlug: string): Promise<PolicyType[]> => {
-  const response = await apiClient.get('/policies/types/', {
-    params: { category: categorySlug }
-  })
-  // Handle paginated response
-  return response.data.results || response.data
+  const cacheKey = '/policies/types/'
+  const params = { category: categorySlug }
+
+  // Check cache first
+  const cached = cacheManager.get<PolicyType[]>(cacheKey, params)
+  if (cached) return cached
+
+  // Fetch from API
+  const response = await apiClient.get(cacheKey, { params })
+  const data = response.data.results || response.data
+
+  // Cache for 3 minutes
+  cacheManager.set(cacheKey, data, params, 3 * 60 * 1000)
+
+  return data
 }
 
 // Get policy reviews
