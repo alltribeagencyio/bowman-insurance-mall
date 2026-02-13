@@ -38,7 +38,6 @@ import {
   UserCheck,
   Download
 } from 'lucide-react'
-import { toast } from 'sonner'
 
 interface Claim {
   id: string
