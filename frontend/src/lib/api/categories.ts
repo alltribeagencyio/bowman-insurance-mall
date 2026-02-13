@@ -104,7 +104,8 @@ export interface PolicyTypeFilters {
 // Get all policy categories
 export const getCategories = async (): Promise<PolicyCategory[]> => {
   const response = await apiClient.get('/policies/categories/')
-  return response.data
+  // Handle paginated response
+  return response.data.results || response.data
 }
 
 // Get category by slug
@@ -116,7 +117,8 @@ export const getCategoryBySlug = async (slug: string): Promise<PolicyCategory> =
 // Get all insurance companies
 export const getInsuranceCompanies = async (): Promise<InsuranceCompany[]> => {
   const response = await apiClient.get('/policies/companies/')
-  return response.data
+  // Handle paginated response
+  return response.data.results || response.data
 }
 
 // Get insurance company by ID
@@ -130,13 +132,15 @@ export const getPolicyTypes = async (filters?: PolicyTypeFilters): Promise<Polic
   const response = await apiClient.get('/policies/types/', {
     params: filters
   })
-  return response.data
+  // Handle paginated response
+  return response.data.results || response.data
 }
 
 // Get featured policy types
 export const getFeaturedPolicies = async (): Promise<PolicyType[]> => {
   const response = await apiClient.get('/policies/types/featured/')
-  return response.data
+  // Handle paginated response (custom action may return array directly)
+  return response.data.results || response.data
 }
 
 // Get policy type by ID
@@ -150,7 +154,8 @@ export const getPolicyTypesByCategory = async (categorySlug: string): Promise<Po
   const response = await apiClient.get('/policies/types/', {
     params: { category: categorySlug }
   })
-  return response.data
+  // Handle paginated response
+  return response.data.results || response.data
 }
 
 // Get policy reviews
@@ -158,7 +163,8 @@ export const getPolicyReviews = async (policyTypeId: string): Promise<PolicyRevi
   const response = await apiClient.get('/policies/reviews/', {
     params: { policy_type: policyTypeId }
   })
-  return response.data
+  // Handle paginated response
+  return response.data.results || response.data
 }
 
 // Submit policy review
@@ -176,7 +182,8 @@ export const searchPolicyTypes = async (query: string): Promise<PolicyType[]> =>
   const response = await apiClient.get('/policies/types/', {
     params: { search: query }
   })
-  return response.data
+  // Handle paginated response
+  return response.data.results || response.data
 }
 
 // Get policy comparison data
