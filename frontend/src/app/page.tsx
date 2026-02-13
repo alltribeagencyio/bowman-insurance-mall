@@ -161,7 +161,7 @@ export default function Home() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {featuredPolicies.map((policy) => (
                 <Card key={policy.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
@@ -184,15 +184,6 @@ export default function Home() {
                       </div>
                       <p className="text-sm text-muted-foreground">starting from</p>
                     </div>
-
-                    {policy.max_coverage_amount && (
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Coverage</p>
-                        <p className="font-semibold">
-                          Up to KES {parseFloat(policy.max_coverage_amount).toLocaleString()}
-                        </p>
-                      </div>
-                    )}
                   </CardContent>
                   <CardFooter className="flex gap-2">
                     <Button variant="outline" className="flex-1" asChild>

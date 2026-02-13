@@ -276,7 +276,7 @@ export function Navbar() {
                                   href={category.href}
                                   className="block p-3 rounded-lg hover:bg-muted transition-colors text-sm"
                                 >
-                                  {company} Insurance
+                                  {company}
                                 </Link>
                               ))}
                             </div>
@@ -286,7 +286,7 @@ export function Navbar() {
                     ) : (
                       <div className="text-center py-8">
                         <p className="text-sm text-muted-foreground mb-3">
-                          Browse our {category.name} insurance products
+                          Browse our {category.name} products
                         </p>
                         <Link href={category.href}>
                           <Button size="sm">View All Products</Button>
@@ -300,7 +300,7 @@ export function Navbar() {
                           href={category.href}
                           className="text-sm font-medium text-primary hover:underline flex items-center"
                         >
-                          View All {category.name} Insurance Options →
+                          View All {category.name} Options →
                         </Link>
                       </div>
                     </div>
@@ -506,7 +506,7 @@ export function Navbar() {
                       <Icon className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold">{category.name} Insurance</div>
+                      <div className="font-semibold">{category.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {category.plans.length} plans available
                       </div>
