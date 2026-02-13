@@ -240,21 +240,21 @@ def get_recommendations_data(user):
             'link': '/dashboard/payments'
         })
 
-    # Check if user has no health insurance
-    has_health = Policy.objects.filter(
+    # Check if user has no medical insurance
+    has_medical = Policy.objects.filter(
         user=user,
-        policy_type__category__slug='health',
+        policy_type__category__slug='medical',
         status='active'
     ).exists()
 
-    if not has_health:
+    if not has_medical:
         recommendations.append({
-            'id': 'get-health',
+            'id': 'get-medical',
             'priority': 'medium',
             'title': 'Protect Your Health',
-            'description': 'Consider adding health insurance to your portfolio for comprehensive coverage.',
-            'action': 'Browse Health Plans',
-            'link': '/policies?category=health'
+            'description': 'Consider adding medical insurance to your portfolio for comprehensive coverage.',
+            'action': 'Browse Medical Plans',
+            'link': '/policies?category=medical'
         })
 
     # Check if user has only one policy

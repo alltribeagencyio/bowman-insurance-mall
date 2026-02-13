@@ -122,8 +122,8 @@ class Command(BaseCommand):
                 'icon': 'Car',
             },
             {
-                'name': 'Health',
-                'slug': 'health',
+                'name': 'Medical',
+                'slug': 'medical',
                 'description': 'Medical and health coverage for you and your family',
                 'icon': 'Heart',
             },
@@ -171,7 +171,7 @@ class Command(BaseCommand):
         """Create sample policy types"""
         # Get categories by slug
         motor_cat = next(c for c in categories if c.slug == 'motor')
-        health_cat = next(c for c in categories if c.slug == 'health')
+        medical_cat = next(c for c in categories if c.slug == 'medical')
         life_cat = next(c for c in categories if c.slug == 'life')
         home_cat = next(c for c in categories if c.slug == 'home')
         travel_cat = next(c for c in categories if c.slug == 'travel')
@@ -229,10 +229,10 @@ class Command(BaseCommand):
                 ],
                 'is_featured': True,
             },
-            # Health Insurance
+            # Medical Insurance
             {
                 'name': 'Family Health Plus',
-                'category': health_cat,
+                'category': medical_cat,
                 'insurance_company': companies[1],
                 'description': 'Comprehensive medical coverage for your entire family. Access to a wide network of hospitals and specialists.',
                 'base_premium': '25000',
@@ -258,7 +258,7 @@ class Command(BaseCommand):
             },
             {
                 'name': 'Individual Medical Cover',
-                'category': health_cat,
+                'category': medical_cat,
                 'insurance_company': companies[2],
                 'description': 'Personal medical insurance with flexible benefits and affordable premiums.',
                 'base_premium': '12000',
