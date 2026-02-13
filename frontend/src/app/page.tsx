@@ -193,10 +193,6 @@ export default function Home() {
                         </p>
                       </div>
                     )}
-
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {policy.description}
-                    </p>
                   </CardContent>
                   <CardFooter className="flex gap-2">
                     <Button variant="outline" className="flex-1" asChild>
