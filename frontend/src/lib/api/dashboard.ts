@@ -85,7 +85,7 @@ export const getDashboardData = async (forceRefresh = false): Promise<DashboardD
     }
   }
 
-  const response = await apiClient.get('/dashboard/')
+  const response = await apiClient.get('dashboard/')
   const data = response.data
 
   // Update cache
@@ -104,13 +104,13 @@ export const clearDashboardCache = () => {
 
 // Get dashboard statistics
 export const getDashboardStats = async (): Promise<DashboardStats> => {
-  const response = await apiClient.get('/dashboard/stats/')
+  const response = await apiClient.get('dashboard/stats/')
   return response.data
 }
 
 // Get recent activity
 export const getRecentActivity = async (limit: number = 10): Promise<ActivityEvent[]> => {
-  const response = await apiClient.get('/dashboard/activity/', {
+  const response = await apiClient.get('dashboard/activity/', {
     params: { limit },
   })
   return response.data
@@ -118,13 +118,13 @@ export const getRecentActivity = async (limit: number = 10): Promise<ActivityEve
 
 // Get recommendations
 export const getRecommendations = async (): Promise<Recommendation[]> => {
-  const response = await apiClient.get('/dashboard/recommendations/')
+  const response = await apiClient.get('dashboard/recommendations/')
   return response.data
 }
 
 // Get upcoming payments
 export const getUpcomingPayments = async (limit: number = 5): Promise<UpcomingPayment[]> => {
-  const response = await apiClient.get('/dashboard/upcoming-payments/', {
+  const response = await apiClient.get('dashboard/upcoming-payments/', {
     params: { limit },
   })
   return response.data
@@ -132,7 +132,7 @@ export const getUpcomingPayments = async (limit: number = 5): Promise<UpcomingPa
 
 // Get expiring policies
 export const getExpiringPolicies = async (days: number = 30): Promise<ExpiringPolicy[]> => {
-  const response = await apiClient.get('/dashboard/expiring-policies/', {
+  const response = await apiClient.get('dashboard/expiring-policies/', {
     params: { days },
   })
   return response.data
