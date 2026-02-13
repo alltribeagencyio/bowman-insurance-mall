@@ -29,19 +29,23 @@ export default function CategoryPage({ params }: CategoryPageProps) {
       try {
         setIsLoading(true)
 
+        // Map 'medical' to 'health' for backward compatibility with existing data
+        const backendCategorySlug = category === 'medical' ? 'health' : category
+
         // Fetch category info, policies, and companies in parallel
         const [categoryData, policiesData, companiesData] = await Promise.all([
-          getCategoryBySlug(category),
-          getPolicyTypesByCategory(category),
+          getCategoryBySlug(backendCategorySlug).catch(() => getCategoryBySlug(category)),
+          getPolicyTypesByCategory(backendCategorySlug).catch(() => getPolicyTypesByCategory(category)),
           getInsuranceCompanies()
         ])
 
         setCategoryInfo(categoryData)
-        setProducts(policiesData)
+        setProducts(Array.isArray(policiesData) ? policiesData : [])
         setCompanies(companiesData.filter(c => c.is_active))
       } catch (error) {
         console.error('Error loading category data:', error)
         toast.error('Failed to load category products')
+        setProducts([])
       } finally {
         setIsLoading(false)
       }
