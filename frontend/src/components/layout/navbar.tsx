@@ -11,7 +11,6 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { useSidebar } from '@/contexts/sidebar-context'
 import { ALL_PRODUCTS } from '@/data/insuranceProducts'
 import { cn } from '@/lib/utils'
-import { getCategories, type PolicyCategory } from '@/lib/api/categories'
 
 // Helper function to map category icon names to Lucide icon components
 const getCategoryIcon = (iconName: string) => {
@@ -114,7 +113,6 @@ export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchExpanded, setSearchExpanded] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [categories, setCategories] = useState<PolicyCategory[]>([])
   const searchRef = useRef<HTMLDivElement>(null)
   const { user, isAuthenticated, logout } = useAuth()
   const { sidebarCollapsed } = useSidebar()
@@ -122,20 +120,6 @@ export function Navbar() {
 
   // Check if we're on a dashboard page (where sidebar is visible)
   const isOnDashboardPage = pathname?.startsWith('/dashboard')
-
-  // Fetch categories on mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await getCategories()
-        setCategories(data)
-      } catch (error) {
-        console.error('Failed to load categories:', error)
-        // Fallback to static categories if API fails - keep existing insuranceCategories
-      }
-    }
-    fetchCategories()
-  }, [])
 
   // Close search when clicking outside
   useEffect(() => {
@@ -155,17 +139,8 @@ export function Navbar() {
     }
   }, [searchExpanded])
 
-  // Map API categories to navbar format, or use fallback
-  const displayCategories = categories.length > 0
-    ? categories.map(cat => ({
-        id: cat.slug,
-        name: cat.name.replace(' Insurance', '').replace(' insurance', ''), // Remove "Insurance" suffix if present
-        icon: getCategoryIcon(cat.icon),
-        href: `/policies/${cat.slug}`,
-        plans: [], // Plans will be loaded from policy types in the future
-        companies: [], // Companies will be loaded from policy types in the future
-      }))
-    : insuranceCategories
+  // Use static categories - they don't change
+  const displayCategories = insuranceCategories
 
   // Filter products based on search query
   const searchResults = searchQuery.trim()

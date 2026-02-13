@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Search, Car, Heart, Users, Home as HomeIcon, Plane, Building2, Briefcase, Shield, TrendingUp, Filter, Clock, CheckCircle, Loader2 } from 'lucide-react'
-import { getCategories, getFeaturedPolicies } from '@/lib/api/categories'
-import type { PolicyCategory, PolicyType } from '@/lib/api/categories'
+import { getFeaturedPolicies } from '@/lib/api/categories'
+import type { PolicyType } from '@/lib/api/categories'
 import { toast } from 'sonner'
 
 // Icon mapping for categories
@@ -22,10 +22,19 @@ const iconMap: Record<string, any> = {
   Shield,
 }
 
+// Static categories - these don't change so no need to fetch from API
+const staticCategories = [
+  { id: 1, name: 'Motor', slug: 'motor', icon: 'Car' },
+  { id: 2, name: 'Medical', slug: 'medical', icon: 'Heart' },
+  { id: 3, name: 'Travel', slug: 'travel', icon: 'Plane' },
+  { id: 4, name: 'Business', slug: 'business', icon: 'Building2' },
+  { id: 5, name: 'Home', slug: 'home', icon: 'Home' },
+  { id: 6, name: 'Life', slug: 'life', icon: 'Users' },
+]
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [categories, setCategories] = useState<PolicyCategory[]>([])
   const [featuredPolicies, setFeaturedPolicies] = useState<PolicyType[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -34,12 +43,7 @@ export default function Home() {
       try {
         setLoading(true)
 
-        const [categoriesData, featuredData] = await Promise.all([
-          getCategories(),
-          getFeaturedPolicies()
-        ])
-
-        setCategories(categoriesData || [])
+        const featuredData = await getFeaturedPolicies()
         setFeaturedPolicies(featuredData || [])
       } catch (error: any) {
         console.error('Failed to load homepage data')
@@ -84,36 +88,22 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Product Categories */}
-          {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : categories.length === 0 ? (
-            <div className="text-center py-12">
-              <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No Categories Available</h3>
-              <p className="text-muted-foreground">Categories will appear here once they are added.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-6xl mx-auto">
-              {categories.map((category) => {
-                const Icon = iconMap[category.icon] || Shield
-                // Remove "Insurance" suffix if present to keep labels clean
-                const cleanName = category.name.replace(' Insurance', '').replace(' insurance', '')
-                return (
-                  <Link key={category.id} href={`/policies/${category.slug}`}>
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                      <CardContent className="pt-6 text-center">
-                        <Icon className="h-10 w-10 text-primary mx-auto mb-2" />
-                        <p className="text-sm font-medium whitespace-nowrap">{cleanName}</p>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
+          {/* Product Categories - Static, no loading needed */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-6xl mx-auto">
+            {staticCategories.map((category) => {
+              const Icon = iconMap[category.icon] || Shield
+              return (
+                <Link key={category.id} href={`/policies/${category.slug}`}>
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <CardContent className="pt-6 text-center">
+                      <Icon className="h-10 w-10 text-primary mx-auto mb-2" />
+                      <p className="text-sm font-medium whitespace-nowrap">{category.name}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )
+            })}
+          </div>
         </div>
       </section>
 
