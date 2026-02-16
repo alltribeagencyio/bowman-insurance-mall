@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { getAllUsers, type User } from '@/lib/api/admin'
+import { getAllUsers, suspendUser, activateUser, type User } from '@/lib/api/admin'
 import {
   Select,
   SelectContent,
@@ -37,70 +37,6 @@ import {
   Eye
 } from 'lucide-react'
 
-// Mock data
-const mockUsers: User[] = [
-  {
-    id: '1',
-    first_name: 'John',
-    last_name: 'Doe',
-    email: 'john@example.com',
-    phone: '+254712345678',
-    role: 'customer',
-    status: 'active',
-    created_at: '2025-12-15T00:00:00Z',
-    policies_count: 3,
-    total_spent: 125000
-  },
-  {
-    id: '2',
-    first_name: 'Jane',
-    last_name: 'Smith',
-    email: 'jane@example.com',
-    phone: '+254723456789',
-    role: 'customer',
-    status: 'active',
-    created_at: '2026-01-10T00:00:00Z',
-    policies_count: 2,
-    total_spent: 85000
-  },
-  {
-    id: '3',
-    first_name: 'Mike',
-    last_name: 'Johnson',
-    email: 'mike@example.com',
-    phone: '+254734567890',
-    role: 'customer',
-    status: 'pending',
-    created_at: '2026-01-27T08:00:00Z',
-    policies_count: 0,
-    total_spent: 0
-  },
-  {
-    id: '4',
-    first_name: 'Sarah',
-    last_name: 'Williams',
-    email: 'sarah@insuremall.com',
-    phone: '+254745678901',
-    role: 'staff',
-    status: 'active',
-    created_at: '2025-11-01T00:00:00Z',
-    policies_count: 0,
-    total_spent: 0
-  },
-  {
-    id: '5',
-    first_name: 'Robert',
-    last_name: 'Brown',
-    email: 'robert@example.com',
-    phone: '+254756789012',
-    role: 'customer',
-    status: 'suspended',
-    created_at: '2025-10-20T00:00:00Z',
-    policies_count: 1,
-    total_spent: 45000
-  }
-]
-
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
@@ -129,12 +65,13 @@ export default function UsersPage() {
         role: roleFilter !== 'all' ? roleFilter : undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined
       })
-      setUsers(response.results)
+      setUsers(Array.isArray(response.results) ? response.results : [])
     } catch (error: any) {
       console.error('Failed to load users:', error)
-      toast.error('Failed to load users')
-      // Fallback to mock data on error
-      setUsers(mockUsers)
+      if (error.response?.status !== 401) {
+        toast.error('Failed to load users from API')
+      }
+      setUsers([])
     } finally {
       setIsLoading(false)
     }
@@ -168,21 +105,25 @@ export default function UsersPage() {
 
   const handleSuspendUser = async (userId: string) => {
     try {
-      // TODO: API call
-      setUsers(users.map(u => u.id === userId ? { ...u, status: 'suspended' } : u))
+      await suspendUser(userId)
+      // Reload users to get updated data
+      await loadUsers()
       toast.success('User suspended successfully')
-    } catch (error) {
-      toast.error('Failed to suspend user')
+    } catch (error: any) {
+      console.error('Failed to suspend user:', error)
+      toast.error(error.response?.data?.message || 'Failed to suspend user')
     }
   }
 
   const handleActivateUser = async (userId: string) => {
     try {
-      // TODO: API call
-      setUsers(users.map(u => u.id === userId ? { ...u, status: 'active' } : u))
+      await activateUser(userId)
+      // Reload users to get updated data
+      await loadUsers()
       toast.success('User activated successfully')
-    } catch (error) {
-      toast.error('Failed to activate user')
+    } catch (error: any) {
+      console.error('Failed to activate user:', error)
+      toast.error(error.response?.data?.message || 'Failed to activate user')
     }
   }
 
@@ -190,7 +131,7 @@ export default function UsersPage() {
     if (!selectedUser) return
 
     try {
-      // TODO: API call
+      // TODO: API call - add deleteUser function to admin API
       setUsers(users.filter(u => u.id !== selectedUser.id))
       toast.success('User deleted successfully')
       setIsDeleteModalOpen(false)
