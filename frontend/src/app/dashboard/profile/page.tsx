@@ -142,7 +142,7 @@ function ProfileContent() {
       setFormData({
         first_name: profile.first_name,
         last_name: profile.last_name,
-        phone: profile.phone_number,
+        phone: profile.phone,
       })
 
       // Load notification preferences
@@ -172,16 +172,17 @@ function ProfileContent() {
   // Loyalty State
   const [loyaltyData] = useState(mockLoyaltyData)
 
-  // Notification Preferences State
+  // Notification Preferences State — field names match backend NotificationPreference model
   const [notifications, setNotifications] = useState({
-    email_enabled: true,
-    sms_enabled: true,
-    push_enabled: false,
-    policy_updates: true,
-    payment_reminders: true,
-    claim_updates: true,
-    renewal_reminders: true,
-    marketing: false
+    email_policy_updates: true,
+    email_payment_reminders: true,
+    email_claim_updates: true,
+    email_marketing: false,
+    sms_policy_updates: true,
+    sms_payment_reminders: true,
+    sms_claim_updates: true,
+    whatsapp_enabled: false,
+    in_app_enabled: true,
   })
 
   // Security Settings State
@@ -961,59 +962,52 @@ function ProfileContent() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notification Channels
+                <Mail className="h-5 w-5" />
+                Email Notifications
               </CardTitle>
               <CardDescription>
-                Choose how you want to receive notifications
+                Choose which updates you receive via email
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <p className="font-medium">Email Notifications</p>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Receive notifications via email
-                  </p>
+                  <p className="font-medium">Policy Updates</p>
+                  <p className="text-sm text-muted-foreground">Changes to your policy terms and coverage</p>
                 </div>
                 <Switch
-                  checked={notifications.email_enabled}
-                  onCheckedChange={() => handleNotificationToggle('email_enabled')}
+                  checked={notifications.email_policy_updates}
+                  onCheckedChange={() => handleNotificationToggle('email_policy_updates')}
                 />
               </div>
-
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Smartphone className="h-4 w-4" />
-                    <p className="font-medium">SMS Notifications</p>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Receive text messages for important updates
-                  </p>
+                  <p className="font-medium">Payment Reminders</p>
+                  <p className="text-sm text-muted-foreground">Upcoming and overdue payment alerts</p>
                 </div>
                 <Switch
-                  checked={notifications.sms_enabled}
-                  onCheckedChange={() => handleNotificationToggle('sms_enabled')}
+                  checked={notifications.email_payment_reminders}
+                  onCheckedChange={() => handleNotificationToggle('email_payment_reminders')}
                 />
               </div>
-
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4" />
-                    <p className="font-medium">Push Notifications</p>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Receive push notifications in your browser
-                  </p>
+                  <p className="font-medium">Claim Updates</p>
+                  <p className="text-sm text-muted-foreground">Status updates on your insurance claims</p>
                 </div>
                 <Switch
-                  checked={notifications.push_enabled}
-                  onCheckedChange={() => handleNotificationToggle('push_enabled')}
+                  checked={notifications.email_claim_updates}
+                  onCheckedChange={() => handleNotificationToggle('email_claim_updates')}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="font-medium">Marketing Communications</p>
+                  <p className="text-sm text-muted-foreground">Special offers and product updates</p>
+                </div>
+                <Switch
+                  checked={notifications.email_marketing}
+                  onCheckedChange={() => handleNotificationToggle('email_marketing')}
                 />
               </div>
             </CardContent>
@@ -1021,74 +1015,74 @@ function ProfileContent() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5" />
+                SMS Notifications
+              </CardTitle>
               <CardDescription>
-                Select which notifications you want to receive
+                Choose which updates you receive via text message
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="font-medium">Policy Updates</p>
-                  <p className="text-sm text-muted-foreground">
-                    Changes to your policy terms and coverage
-                  </p>
+                  <p className="text-sm text-muted-foreground">SMS alerts for policy changes</p>
                 </div>
                 <Switch
-                  checked={notifications.policy_updates}
-                  onCheckedChange={() => handleNotificationToggle('policy_updates')}
+                  checked={notifications.sms_policy_updates}
+                  onCheckedChange={() => handleNotificationToggle('sms_policy_updates')}
                 />
               </div>
-
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="font-medium">Payment Reminders</p>
-                  <p className="text-sm text-muted-foreground">
-                    Upcoming and overdue payment notifications
-                  </p>
+                  <p className="text-sm text-muted-foreground">SMS reminders for upcoming payments</p>
                 </div>
                 <Switch
-                  checked={notifications.payment_reminders}
-                  onCheckedChange={() => handleNotificationToggle('payment_reminders')}
+                  checked={notifications.sms_payment_reminders}
+                  onCheckedChange={() => handleNotificationToggle('sms_payment_reminders')}
                 />
               </div>
-
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="font-medium">Claim Updates</p>
-                  <p className="text-sm text-muted-foreground">
-                    Status updates on your insurance claims
-                  </p>
+                  <p className="text-sm text-muted-foreground">SMS updates on claim status changes</p>
                 </div>
                 <Switch
-                  checked={notifications.claim_updates}
-                  onCheckedChange={() => handleNotificationToggle('claim_updates')}
+                  checked={notifications.sms_claim_updates}
+                  onCheckedChange={() => handleNotificationToggle('sms_claim_updates')}
                 />
               </div>
+            </CardContent>
+          </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Other Channels
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="font-medium">Renewal Reminders</p>
-                  <p className="text-sm text-muted-foreground">
-                    Reminders when your policies are about to expire
-                  </p>
+                  <p className="font-medium">WhatsApp Notifications</p>
+                  <p className="text-sm text-muted-foreground">Receive updates via WhatsApp</p>
                 </div>
                 <Switch
-                  checked={notifications.renewal_reminders}
-                  onCheckedChange={() => handleNotificationToggle('renewal_reminders')}
+                  checked={notifications.whatsapp_enabled}
+                  onCheckedChange={() => handleNotificationToggle('whatsapp_enabled')}
                 />
               </div>
-
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="font-medium">Marketing Communications</p>
-                  <p className="text-sm text-muted-foreground">
-                    Special offers and product updates
-                  </p>
+                  <p className="font-medium">In-App Notifications</p>
+                  <p className="text-sm text-muted-foreground">Show notifications within the app</p>
                 </div>
                 <Switch
-                  checked={notifications.marketing}
-                  onCheckedChange={() => handleNotificationToggle('marketing')}
+                  checked={notifications.in_app_enabled}
+                  onCheckedChange={() => handleNotificationToggle('in_app_enabled')}
                 />
               </div>
 

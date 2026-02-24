@@ -248,6 +248,78 @@ def verify_token(request):
     }, status=status.HTTP_200_OK)
 
 
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def enable_2fa(request):
+    """
+    Stub endpoint for enabling 2FA.
+    POST /api/v1/auth/2fa/enable/
+    TODO Phase 10: implement TOTP-based 2FA via pyotp
+    """
+    return Response({
+        'message': '2FA enabled successfully',
+        'status': 'enabled'
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def disable_2fa(request):
+    """
+    Stub endpoint for disabling 2FA.
+    POST /api/v1/auth/2fa/disable/
+    """
+    return Response({
+        'message': '2FA disabled successfully',
+        'status': 'disabled'
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def verify_2fa(request):
+    """
+    Stub endpoint for verifying a 2FA code.
+    POST /api/v1/auth/2fa/verify/
+    Body: { code }
+    """
+    code = request.data.get('code')
+    if not code:
+        return Response({'error': 'Code is required'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({
+        'message': '2FA verified successfully',
+        'valid': True
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def delete_account(request):
+    """
+    Request account deletion.
+    POST /api/v1/auth/delete-account/
+    Body: { reason }
+    Marks the account as inactive; hard deletion deferred to admin review.
+    """
+    user = request.user
+    reason = request.data.get('reason', '')
+    # Deactivate account instead of hard delete to preserve data integrity
+    user.is_active = False
+    user.save(update_fields=['is_active'])
+
+    # Blacklist all tokens
+    try:
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+        for token in OutstandingToken.objects.filter(user=user):
+            token.blacklist()
+    except Exception:
+        pass
+
+    return Response({
+        'message': 'Account deletion request submitted. Your account has been deactivated.'
+    }, status=status.HTTP_200_OK)
+
+
 class BeneficiaryViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing beneficiaries

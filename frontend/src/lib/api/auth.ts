@@ -5,7 +5,7 @@ export interface User {
   email: string
   first_name: string
   last_name: string
-  phone_number: string
+  phone: string
   role: 'customer' | 'staff' | 'admin'
   is_active: boolean
   created_at: string
@@ -14,9 +14,10 @@ export interface User {
 export interface RegisterInput {
   email: string
   password: string
+  password2: string
   first_name: string
   last_name: string
-  phone_number: string
+  phone: string
 }
 
 export interface LoginInput {

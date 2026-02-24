@@ -12,6 +12,10 @@ from .views import (
     request_password_reset,
     reset_password,
     verify_token,
+    enable_2fa,
+    disable_2fa,
+    verify_2fa,
+    delete_account,
 )
 
 app_name = 'users'
@@ -35,6 +39,14 @@ urlpatterns = [
     # User Profile
     path('profile/', UserProfileView.as_view(), name='profile'),
     path('notification-preferences/', NotificationPreferenceView.as_view(), name='notification_preferences'),
+
+    # Two-Factor Authentication (stubs — full TOTP implementation in Phase 10)
+    path('2fa/enable/', enable_2fa, name='enable_2fa'),
+    path('2fa/disable/', disable_2fa, name='disable_2fa'),
+    path('2fa/verify/', verify_2fa, name='verify_2fa'),
+
+    # Account Management
+    path('delete-account/', delete_account, name='delete_account'),
 
     # Beneficiaries (router URLs)
     path('', include(router.urls)),
