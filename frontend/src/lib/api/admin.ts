@@ -78,9 +78,17 @@ export interface PolicyType {
   id: string
   name: string
   category: string
+  insurance_company: string        // UUID (used for create/edit)
+  insurance_company_name: string   // display name (read-only from backend)
   description: string
   base_premium: number
+  min_coverage_amount?: number | null
+  max_coverage_amount?: number | null
+  features: string[]
+  exclusions: string[]
+  status: 'draft' | 'published' | 'delisted'
   is_active: boolean
+  is_featured: boolean
   created_at: string
 }
 

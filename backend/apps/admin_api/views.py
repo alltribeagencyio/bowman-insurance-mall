@@ -392,7 +392,7 @@ class TransactionManagementViewSet(viewsets.ViewSet):
 class PolicyTypeManagementViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdmin]
     serializer_class = PolicyTypeSerializer
-    queryset = PolicyType.objects.select_related('category').all()
+    queryset = PolicyType.objects.select_related('category', 'insurance_company').all()
     pagination_class = None  # Return plain array, not paginated object
 
 

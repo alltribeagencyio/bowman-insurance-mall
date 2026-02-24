@@ -38,17 +38,26 @@ class PolicyCategorySerializer(serializers.ModelSerializer):
 
 
 class PolicyTypeSerializer(serializers.ModelSerializer):
-    """Basic serializer for policy types (used by admin API)"""
+    """Serializer for policy types (admin API — includes all editable fields)"""
     category = serializers.SlugRelatedField(
         slug_field='name',
         queryset=PolicyCategory.objects.all()
+    )
+    insurance_company_name = serializers.CharField(
+        source='insurance_company.name',
+        read_only=True
     )
 
     class Meta:
         model = PolicyType
         fields = [
-            'id', 'name', 'category', 'description', 'base_premium',
-            'is_active', 'created_at'
+            'id', 'name', 'category',
+            'insurance_company', 'insurance_company_name',
+            'description', 'base_premium',
+            'min_coverage_amount', 'max_coverage_amount',
+            'features', 'exclusions',
+            'status', 'is_active', 'is_featured',
+            'created_at',
         ]
         read_only_fields = ['id', 'created_at']
 

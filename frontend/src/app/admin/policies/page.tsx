@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Search, Plus, Edit, Trash2, Upload, Loader2, Building2 } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, Upload, Loader2, Building2, ChevronDown, ChevronRight, CheckCircle2, XCircle, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   getAllPolicyTypes, createPolicyType, updatePolicyType, deletePolicyType, bulkUploadPolicyTypes,
@@ -53,45 +53,63 @@ const CATEGORIES = ['Motor', 'Medical', 'Life', 'Home', 'Travel', 'Business']
 interface PolicyTypeDialogProps {
   open: boolean
   initial?: PolicyType | null
+  companies: InsuranceCompany[]
   onClose: () => void
   onSaved: () => void
 }
 
-function PolicyTypeDialog({ open, initial, onClose, onSaved }: PolicyTypeDialogProps) {
+function PolicyTypeDialog({ open, initial, companies, onClose, onSaved }: PolicyTypeDialogProps) {
   const [isSaving, setIsSaving] = useState(false)
-  const [form, setForm] = useState({
+
+  const blankForm = () => ({
     name: initial?.name ?? '',
     category: initial?.category ?? '',
+    insurance_company: initial?.insurance_company ?? '',
     description: initial?.description ?? '',
-    base_premium: initial?.base_premium ?? 0,
+    base_premium: Number(initial?.base_premium ?? 0),
+    min_coverage_amount: Number(initial?.min_coverage_amount ?? 0),
+    max_coverage_amount: Number(initial?.max_coverage_amount ?? 0),
+    features: initial?.features?.length ? [...initial.features] : [''],
+    exclusions: initial?.exclusions?.length ? [...initial.exclusions] : [''],
+    status: (initial?.status ?? 'published') as 'draft' | 'published' | 'delisted',
     is_active: initial?.is_active ?? true,
+    is_featured: initial?.is_featured ?? false,
   })
 
+  const [form, setForm] = useState(blankForm)
+
   useEffect(() => {
-    if (open) {
-      setForm({
-        name: initial?.name ?? '',
-        category: initial?.category ?? '',
-        description: initial?.description ?? '',
-        base_premium: initial?.base_premium ?? 0,
-        is_active: initial?.is_active ?? true,
-      })
-    }
+    if (open) setForm(blankForm())
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial])
+
+  const setList = (key: 'features' | 'exclusions', idx: number, val: string) =>
+    setForm(f => { const arr = [...f[key]]; arr[idx] = val; return { ...f, [key]: arr } })
+
+  const addListItem = (key: 'features' | 'exclusions') =>
+    setForm(f => ({ ...f, [key]: [...f[key], ''] }))
+
+  const removeListItem = (key: 'features' | 'exclusions', idx: number) =>
+    setForm(f => ({ ...f, [key]: f[key].filter((_, i) => i !== idx) }))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name || !form.category) {
-      toast.error('Name and category are required')
+    if (!form.name || !form.category || !form.insurance_company) {
+      toast.error('Name, category, and insurance company are required')
       return
+    }
+    const payload = {
+      ...form,
+      features: form.features.filter(f => f.trim()),
+      exclusions: form.exclusions.filter(e => e.trim()),
     }
     setIsSaving(true)
     try {
       if (initial) {
-        await updatePolicyType(initial.id, form)
+        await updatePolicyType(initial.id, payload)
         toast.success('Policy type updated')
       } else {
-        await createPolicyType(form)
+        await createPolicyType(payload)
         toast.success('Policy type created')
       }
       onSaved()
@@ -105,39 +123,141 @@ function PolicyTypeDialog({ open, initial, onClose, onSaved }: PolicyTypeDialogP
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{initial ? 'Edit Policy Type' : 'Add Policy Type'}</DialogTitle>
-          <DialogDescription>Fill in the policy type details below</DialogDescription>
+          <DialogDescription>Fill in all policy details — these appear on the customer-facing product page</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
+
+          {/* ── Basic Info ── */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2 col-span-2">
+              <Label>Policy Name *</Label>
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Comprehensive Motor Insurance" required />
+            </div>
+            <div className="space-y-2">
+              <Label>Category *</Label>
+              <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Insurance Company *</Label>
+              <Select value={form.insurance_company} onValueChange={v => setForm(f => ({ ...f, insurance_company: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select company" /></SelectTrigger>
+                <SelectContent>
+                  {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label>Name *</Label>
-            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Motor - Comprehensive" required />
+            <Label>Description *</Label>
+            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="Describe what this policy covers, who it's for, and key benefits..." required />
           </div>
+
+          {/* ── Pricing & Coverage ── */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Base Premium (KES)</Label>
+              <Input type="number" value={form.base_premium} onChange={e => setForm(f => ({ ...f, base_premium: Number(e.target.value) }))} min={0} placeholder="e.g. 15000" />
+            </div>
+            <div className="space-y-2">
+              <Label>Min Coverage (KES)</Label>
+              <Input type="number" value={form.min_coverage_amount} onChange={e => setForm(f => ({ ...f, min_coverage_amount: Number(e.target.value) }))} min={0} placeholder="e.g. 500000" />
+            </div>
+            <div className="space-y-2">
+              <Label>Max Coverage (KES)</Label>
+              <Input type="number" value={form.max_coverage_amount} onChange={e => setForm(f => ({ ...f, max_coverage_amount: Number(e.target.value) }))} min={0} placeholder="e.g. 10000000" />
+            </div>
+          </div>
+
+          {/* ── Features (What's Covered) ── */}
           <div className="space-y-2">
-            <Label>Category *</Label>
-            <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Label className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              What&apos;s Covered (Features)
+            </Label>
+            <div className="space-y-2 rounded-md border p-3 bg-green-50/50 dark:bg-green-950/20">
+              {form.features.map((feat, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input
+                    value={feat}
+                    onChange={e => setList('features', i, e.target.value)}
+                    placeholder="e.g. Accident damage cover up to vehicle value"
+                    className="text-sm"
+                  />
+                  <Button type="button" variant="ghost" size="sm" onClick={() => removeListItem('features', i)} className="shrink-0">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => addListItem('features')} className="mt-1">
+                <Plus className="h-3 w-3 mr-1" /> Add Feature
+              </Button>
+            </div>
           </div>
+
+          {/* ── Exclusions (What's Not Covered) ── */}
           <div className="space-y-2">
-            <Label>Description</Label>
-            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="Brief description of coverage..." />
+            <Label className="flex items-center gap-2">
+              <XCircle className="h-4 w-4 text-red-500" />
+              What&apos;s Not Covered (Exclusions)
+            </Label>
+            <div className="space-y-2 rounded-md border p-3 bg-red-50/50 dark:bg-red-950/20">
+              {form.exclusions.map((excl, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input
+                    value={excl}
+                    onChange={e => setList('exclusions', i, e.target.value)}
+                    placeholder="e.g. Wear and tear"
+                    className="text-sm"
+                  />
+                  <Button type="button" variant="ghost" size="sm" onClick={() => removeListItem('exclusions', i)} className="shrink-0">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => addListItem('exclusions')} className="mt-1">
+                <Plus className="h-3 w-3 mr-1" /> Add Exclusion
+              </Button>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Base Premium (KES)</Label>
-            <Input type="number" value={form.base_premium} onChange={e => setForm(f => ({ ...f, base_premium: Number(e.target.value) }))} min={0} />
+
+          {/* ── Status & Visibility ── */}
+          <div className="grid grid-cols-3 gap-4 pt-2 border-t">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v as 'draft' | 'published' | 'delisted' }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="published">Published (visible to customers)</SelectItem>
+                  <SelectItem value="draft">Draft (hidden)</SelectItem>
+                  <SelectItem value="delisted">Delisted (removed from sale)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 flex flex-col justify-end">
+              <div className="flex items-center justify-between p-3 rounded-md border">
+                <Label className="cursor-pointer">Active</Label>
+                <Switch checked={form.is_active} onCheckedChange={v => setForm(f => ({ ...f, is_active: v }))} />
+              </div>
+            </div>
+            <div className="space-y-2 flex flex-col justify-end">
+              <div className="flex items-center justify-between p-3 rounded-md border">
+                <Label className="cursor-pointer flex items-center gap-1">
+                  <Star className="h-3 w-3 text-yellow-500" /> Featured
+                </Label>
+                <Switch checked={form.is_featured} onCheckedChange={v => setForm(f => ({ ...f, is_featured: v }))} />
+              </div>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <Label>Active</Label>
-            <Switch checked={form.is_active} onCheckedChange={v => setForm(f => ({ ...f, is_active: v }))} />
-          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
             <Button type="submit" disabled={isSaving}>
@@ -279,6 +399,7 @@ export default function PoliciesPage() {
   const [editingPolicyType, setEditingPolicyType] = useState<PolicyType | null>(null)
   const [deletingTypeId, setDeletingTypeId] = useState<string | null>(null)
   const [isBulkUploading, setIsBulkUploading] = useState(false)
+  const [expandedTypeId, setExpandedTypeId] = useState<string | null>(null)
   const bulkFileRef = useRef<HTMLInputElement>(null)
 
   // User policies state
@@ -465,6 +586,7 @@ export default function PoliciesPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
+                        <th className="w-10 p-4"></th>
                         <th className="text-left p-4 font-medium">Policy Name</th>
                         <th className="text-left p-4 font-medium">Category</th>
                         <th className="text-left p-4 font-medium">Base Premium</th>
@@ -473,36 +595,104 @@ export default function PoliciesPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredTypes.map((type) => (
-                        <tr key={type.id} className="border-b hover:bg-muted/50">
-                          <td className="p-4 font-medium">{type.name}</td>
-                          <td className="p-4">{type.category}</td>
-                          <td className="p-4">{formatCurrency(type.base_premium)}</td>
-                          <td className="p-4">
-                            <Badge variant={type.is_active ? 'default' : 'secondary'}>
-                              {type.is_active ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => { setEditingPolicyType(type); setShowPolicyTypeDialog(true) }}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDeletingTypeId(type.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredTypes.map((type) => {
+                        const hasDetails = (type.features?.length ?? 0) > 0 || (type.exclusions?.length ?? 0) > 0
+                        const isExpanded = expandedTypeId === type.id
+                        return (
+                          <Fragment key={type.id}>
+                            <tr className="border-b hover:bg-muted/50">
+                              <td className="p-4">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  disabled={!hasDetails}
+                                  onClick={() => setExpandedTypeId(isExpanded ? null : type.id)}
+                                  title={hasDetails ? 'View features / exclusions' : 'No features added yet'}
+                                >
+                                  {isExpanded
+                                    ? <ChevronDown className="h-4 w-4" />
+                                    : <ChevronRight className={`h-4 w-4 ${!hasDetails ? 'text-muted-foreground/30' : ''}`} />
+                                  }
+                                </Button>
+                              </td>
+                              <td className="p-4 font-medium">
+                                <div className="flex items-center gap-2">
+                                  {type.name}
+                                  {type.is_featured && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                                </div>
+                              </td>
+                              <td className="p-4">{type.category}</td>
+                              <td className="p-4">{formatCurrency(type.base_premium)}</td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={type.status === 'published' ? 'default' : 'secondary'} className="capitalize">
+                                    {type.status}
+                                  </Badge>
+                                  {!type.is_active && <Badge variant="outline" className="text-xs">Inactive</Badge>}
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { setEditingPolicyType(type); setShowPolicyTypeDialog(true) }}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setDeletingTypeId(type.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                            {isExpanded && hasDetails && (
+                              <tr className="bg-muted/20 border-b">
+                                <td />
+                                <td colSpan={5} className="px-4 pb-4 pt-2">
+                                  <div className="grid grid-cols-2 gap-6">
+                                    {(type.features?.length ?? 0) > 0 && (
+                                      <div>
+                                        <p className="text-xs font-semibold text-green-700 dark:text-green-400 flex items-center gap-1 mb-2">
+                                          <CheckCircle2 className="h-3 w-3" /> What&apos;s Covered
+                                        </p>
+                                        <ul className="space-y-1">
+                                          {type.features.map((feat, i) => (
+                                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                              <span className="text-green-600 shrink-0 mt-0.5">✓</span>
+                                              {feat}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    {(type.exclusions?.length ?? 0) > 0 && (
+                                      <div>
+                                        <p className="text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1 mb-2">
+                                          <XCircle className="h-3 w-3" /> What&apos;s Not Covered
+                                        </p>
+                                        <ul className="space-y-1">
+                                          {type.exclusions.map((excl, i) => (
+                                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                              <span className="text-red-500 shrink-0 mt-0.5">✗</span>
+                                              {excl}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -656,6 +846,7 @@ export default function PoliciesPage() {
       <PolicyTypeDialog
         open={showPolicyTypeDialog}
         initial={editingPolicyType}
+        companies={companies}
         onClose={() => setShowPolicyTypeDialog(false)}
         onSaved={loadPolicyTypes}
       />
