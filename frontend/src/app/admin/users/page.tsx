@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { getAllUsers, suspendUser, activateUser, type User } from '@/lib/api/admin'
+import { getErrorStatus, getErrorMessage } from '@/lib/api/errors'
 import {
   Select,
   SelectContent,
@@ -66,9 +67,9 @@ export default function UsersPage() {
         status: statusFilter !== 'all' ? statusFilter : undefined
       })
       setUsers(Array.isArray(response.results) ? response.results : [])
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load users:', error)
-      if (error.response?.status !== 401) {
+      if (getErrorStatus(error) !== 401) {
         toast.error('Failed to load users from API')
       }
       setUsers([])
@@ -109,9 +110,9 @@ export default function UsersPage() {
       // Reload users to get updated data
       await loadUsers()
       toast.success('User suspended successfully')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to suspend user:', error)
-      toast.error(error.response?.data?.message || 'Failed to suspend user')
+      toast.error(getErrorMessage(error, 'Failed to suspend user'))
     }
   }
 
@@ -121,9 +122,9 @@ export default function UsersPage() {
       // Reload users to get updated data
       await loadUsers()
       toast.success('User activated successfully')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to activate user:', error)
-      toast.error(error.response?.data?.message || 'Failed to activate user')
+      toast.error(getErrorMessage(error, 'Failed to activate user'))
     }
   }
 

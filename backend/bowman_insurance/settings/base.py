@@ -169,7 +169,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/hour',
-        'user': '1000/hour'
+        'user': '1000/hour',
+        'payment_initiate': '20/hour',
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
@@ -237,6 +238,8 @@ MPESA_CONSUMER_SECRET = os.getenv('MPESA_CONSUMER_SECRET')
 MPESA_PASSKEY = os.getenv('MPESA_PASSKEY')
 MPESA_SHORTCODE = os.getenv('MPESA_SHORTCODE')
 MPESA_CALLBACK_URL = os.getenv('MPESA_CALLBACK_URL')
+# Secret token embedded in callback URL for webhook verification (production only)
+MPESA_CALLBACK_SECRET = os.getenv('MPESA_CALLBACK_SECRET', '')
 
 # Paystack Configuration
 PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY')

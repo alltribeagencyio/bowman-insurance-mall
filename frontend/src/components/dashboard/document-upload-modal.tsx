@@ -22,6 +22,7 @@ import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { Upload, File, CheckCircle2, AlertCircle, X } from 'lucide-react'
 import { uploadDocument } from '@/lib/api/documents'
+import { getErrorMessage } from '@/lib/api/errors'
 
 interface DocumentUploadModalProps {
   isOpen: boolean
@@ -143,9 +144,9 @@ export function DocumentUploadModal({
         onSuccess()
         handleClose()
       }, 1500)
-    } catch (error: any) {
+    } catch (error: unknown) {
       setUploadStatus('error')
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to upload document'
+      const errorMessage = getErrorMessage(error, 'Failed to upload document')
       setError(errorMessage)
       toast.error(errorMessage)
     } finally {

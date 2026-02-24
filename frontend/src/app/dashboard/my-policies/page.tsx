@@ -24,6 +24,7 @@ import {
 import { toast } from 'sonner'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { getUserPolicies, type Policy } from '@/lib/api/policies'
+import { getErrorStatus } from '@/lib/api/errors'
 
 
 function MyPoliciesContent() {
@@ -42,11 +43,11 @@ function MyPoliciesContent() {
         const data = await getUserPolicies()
         // Ensure data is always an array
         setPolicies(Array.isArray(data) ? data : [])
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error fetching policies:', error)
 
         // Only show error for non-401 errors
-        if (error.response?.status !== 401) {
+        if (getErrorStatus(error) !== 401) {
           toast.error('Failed to load policies. Please try again.')
         }
 

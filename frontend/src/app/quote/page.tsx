@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Car, ArrowRight, Calendar, User, Phone, Mail } from 'lucide-react'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/api/errors'
 
 export default function QuotePage() {
   const router = useRouter()
@@ -58,8 +59,8 @@ export default function QuotePage() {
 
       toast.success('Quote generated successfully!')
       router.push('/quote/results')
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to generate quote')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to generate quote'))
     } finally {
       setIsLoading(false)
     }

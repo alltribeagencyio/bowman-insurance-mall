@@ -91,8 +91,11 @@ def get_admin_dashboard(request):
         } if t.policy else None
     } for t in recent_transactions]
 
-    # Recent users
-    recent_users = User.objects.filter(role='customer').order_by('-created_at')[:10]
+    # Recent users — single query with annotations (avoids N+1)
+    recent_users = User.objects.filter(role='customer').annotate(
+        policies_count=Count('policy', distinct=True),
+        total_spent=Sum('transaction__amount', filter=Q(transaction__status='completed'))
+    ).order_by('-created_at')[:10]
     users_data = [{
         'id': str(u.id),
         'first_name': u.first_name,
@@ -102,17 +105,15 @@ def get_admin_dashboard(request):
         'role': u.role,
         'status': 'active' if u.is_active else 'inactive',
         'created_at': u.created_at.isoformat(),
-        'policies_count': Policy.objects.filter(user=u).count(),
-        'total_spent': float(Transaction.objects.filter(
-            user=u, status='completed'
-        ).aggregate(total=Sum('amount'))['total'] or 0)
+        'policies_count': u.policies_count or 0,
+        'total_spent': float(u.total_spent or 0)
     } for u in recent_users]
 
     # Pending tasks
     pending_tasks = []
 
-    # Add pending claims as tasks
-    for claim in Claim.objects.filter(status='submitted').order_by('-submitted_at')[:5]:
+    # Add pending claims as tasks — select_related('user') avoids N+1
+    for claim in Claim.objects.filter(status='submitted').select_related('user').order_by('-submitted_at')[:5]:
         pending_tasks.append({
             'id': f'claim-{claim.id}',
             'title': f'Review Claim #{claim.claim_number}',
@@ -214,17 +215,19 @@ def get_sales_report(request):
     if date_to:
         policies = policies.filter(created_at__lte=date_to)
 
-    # Sales by category
-    by_category = []
-    from apps.policies.models import PolicyCategory
-    for category in PolicyCategory.objects.all():
-        cat_policies = policies.filter(policy_type__category=category)
-        total = cat_policies.aggregate(total=Sum('premium_amount'))['total'] or 0
-        by_category.append({
-            'category': category.name,
-            'count': cat_policies.count(),
-            'amount': float(total)
-        })
+    # Sales by category — single annotated query (avoids N+1 category loop)
+    category_data = policies.values('policy_type__category__name').annotate(
+        count=Count('id'),
+        amount=Sum('premium_amount')
+    ).order_by('-amount')
+    by_category = [
+        {
+            'category': item['policy_type__category__name'] or 'Unknown',
+            'count': item['count'],
+            'amount': float(item['amount'] or 0)
+        }
+        for item in category_data
+    ]
 
     total_sales = policies.count()
 

@@ -182,7 +182,7 @@ def get_recent_activity_data(user, limit=10):
         })
 
     # Recent policies
-    recent_policies = Policy.objects.filter(user=user).order_by('-created_at')[:limit]
+    recent_policies = Policy.objects.filter(user=user).select_related('policy_type').order_by('-created_at')[:limit]
     for policy in recent_policies:
         activities.append({
             'id': f'policy-{policy.id}',

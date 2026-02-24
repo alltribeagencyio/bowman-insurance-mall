@@ -4,6 +4,8 @@ Handles STK Push, payment callbacks, and transaction verification
 """
 
 import base64
+import hmac
+import hashlib
 import requests
 from datetime import datetime
 from django.conf import settings
@@ -27,6 +29,8 @@ class MpesaService:
         self.passkey = getattr(settings, 'MPESA_PASSKEY', '')
         self.callback_url = getattr(settings, 'MPESA_CALLBACK_URL', '')
         self.api_url = getattr(settings, 'MPESA_API_URL', 'https://sandbox.safaricom.co.ke')
+        self.environment = getattr(settings, 'MPESA_ENVIRONMENT', 'sandbox')
+        self.callback_secret = getattr(settings, 'MPESA_CALLBACK_SECRET', '')
 
     def _generate_access_token(self) -> Optional[str]:
         """
@@ -283,6 +287,20 @@ class MpesaService:
                 'success': False,
                 'error': str(e)
             }
+
+    def verify_callback_secret(self, request_secret: str) -> bool:
+        """
+        Verify M-Pesa callback using shared secret embedded in the callback URL.
+
+        In sandbox mode or when MPESA_CALLBACK_SECRET is not configured,
+        verification is skipped (Safaricom sandbox does not send secrets).
+
+        In production, set MPESA_CALLBACK_SECRET and include it in the callback URL:
+        https://yourdomain.com/api/v1/payments/mpesa/callback/?secret=<MPESA_CALLBACK_SECRET>
+        """
+        if self.environment == 'sandbox' or not self.callback_secret:
+            return True
+        return hmac.compare_digest(request_secret or '', self.callback_secret)
 
     def validate_transaction(
         self,

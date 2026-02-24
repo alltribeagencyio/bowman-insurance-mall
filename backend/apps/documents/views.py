@@ -57,12 +57,31 @@ class DocumentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         """Get download URL for document"""
+        from django.conf import settings as django_settings
         document = self.get_object()
 
-        # For now, return the s3_key - frontend should handle actual download
-        # In production, generate presigned S3 URL here
+        try:
+            import boto3
+            s3_client = boto3.client(
+                's3',
+                region_name=getattr(django_settings, 'AWS_S3_REGION_NAME', 'us-east-1'),
+                aws_access_key_id=getattr(django_settings, 'AWS_ACCESS_KEY_ID', None),
+                aws_secret_access_key=getattr(django_settings, 'AWS_SECRET_ACCESS_KEY', None),
+            )
+            download_url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': django_settings.AWS_STORAGE_BUCKET_NAME,
+                    'Key': document.s3_key,
+                },
+                ExpiresIn=3600,
+            )
+        except Exception:
+            # Fallback for local dev (no S3 configured)
+            download_url = f"/media/{document.s3_key}"
+
         return Response({
-            'download_url': f"/media/{document.s3_key}",  # Placeholder
+            'download_url': download_url,
             'filename': document.filename,
             'mime_type': document.mime_type
         })

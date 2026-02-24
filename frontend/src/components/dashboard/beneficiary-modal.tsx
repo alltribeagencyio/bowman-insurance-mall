@@ -22,6 +22,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { createBeneficiary, updateBeneficiary, type BeneficiaryInput } from '@/lib/api/beneficiaries'
+import { getErrorMessage } from '@/lib/api/errors'
 
 interface Beneficiary {
   id: string
@@ -159,9 +160,8 @@ export function BeneficiaryModal({
 
       onSuccess()
       onClose()
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to save beneficiary'
-      toast.error(errorMessage)
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to save beneficiary'))
     } finally {
       setIsLoading(false)
     }

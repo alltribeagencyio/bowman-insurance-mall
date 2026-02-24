@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { ArrowLeft, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { confirmPasswordReset } from '@/lib/api/auth'
+import { getErrorMessage } from '@/lib/api/errors'
 
 export default function ResetPasswordPage() {
   const params = useParams()
@@ -49,12 +50,9 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push('/login')
       }, 2000)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Password reset error:', error)
-      const errorMessage = error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        'Failed to reset password. The link may be invalid or expired.'
-      toast.error(errorMessage)
+      toast.error(getErrorMessage(error, 'Failed to reset password. The link may be invalid or expired.'))
     } finally {
       setIsSubmitting(false)
     }

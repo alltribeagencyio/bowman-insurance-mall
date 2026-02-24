@@ -7,8 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CreditCard, Loader2, ArrowLeft, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import { paymentsApi } from '@/lib/api/payments'
+import { getErrorMessage } from '@/lib/api/errors'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { useAuth } from '@/lib/auth/auth-context'
+import { ErrorBoundary } from '@/components/shared/error-boundary'
 
 type PaymentStatus = 'idle' | 'initializing' | 'redirecting' | 'verifying' | 'complete'
 
@@ -66,10 +68,10 @@ function CardPaymentContent() {
         setErrorMessage('Failed to initialize payment')
         toast.error('Failed to initialize payment')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Payment initialization error:', error)
       setStatus('idle')
-      const message = error.response?.data?.message || error.message || 'Failed to initialize payment'
+      const message = getErrorMessage(error, 'Failed to initialize payment')
       setErrorMessage(message)
       toast.error(message)
     }
@@ -94,10 +96,10 @@ function CardPaymentContent() {
         setErrorMessage(response.message || 'Payment verification failed')
         toast.error(response.message || 'Payment verification failed')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Payment verification error:', error)
       setStatus('idle')
-      const message = error.response?.data?.message || error.message || 'Failed to verify payment'
+      const message = getErrorMessage(error, 'Failed to verify payment')
       setErrorMessage(message)
       toast.error(message)
     }
@@ -274,7 +276,9 @@ function CardPaymentContent() {
 export default function CardPaymentPage() {
   return (
     <ProtectedRoute>
-      <CardPaymentContent />
+      <ErrorBoundary>
+        <CardPaymentContent />
+      </ErrorBoundary>
     </ProtectedRoute>
   )
 }

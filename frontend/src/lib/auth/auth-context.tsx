@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiClient } from '@/lib/api/client'
+import { getErrorMessage } from '@/lib/api/errors'
 import type { User } from '@/types'
 
 interface AuthTokens {
@@ -170,9 +171,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         router.push('/dashboard')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login failed:', error)
-      throw new Error(error.response?.data?.message || 'Invalid email or password')
+      throw new Error(getErrorMessage(error, 'Invalid email or password'))
     }
   }, [router])
 
@@ -186,9 +187,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setTokens(tokenData)
 
       router.push('/dashboard')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Registration failed:', error)
-      throw new Error(error.response?.data?.message || 'Registration failed')
+      throw new Error(getErrorMessage(error, 'Registration failed'))
     }
   }, [router])
 
@@ -214,9 +215,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await apiClient.patch('/auth/profile/', data)
       setUser(response.data)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Profile update failed:', error)
-      throw new Error(error.response?.data?.message || 'Profile update failed')
+      throw new Error(getErrorMessage(error, 'Profile update failed'))
     }
   }, [])
 

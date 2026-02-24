@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { CreditCard, Smartphone, ArrowLeft, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { paymentsApi } from '@/lib/api/payments'
+import { getErrorMessage } from '@/lib/api/errors'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { useAuth } from '@/lib/auth/auth-context'
 
@@ -69,9 +70,9 @@ function PaymentSelectionContent() {
         router.push(`/payment/card/${transaction.transaction_id}?amount=${amount}`)
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Payment initiation error:', error)
-      toast.error(error.response?.data?.message || error.message || 'Failed to initiate payment')
+      toast.error(getErrorMessage(error, 'Failed to initiate payment'))
     } finally {
       setIsLoading(false)
     }

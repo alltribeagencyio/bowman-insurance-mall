@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Smartphone, CheckCircle2, XCircle, Loader2, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { paymentsApi } from '@/lib/api/payments'
+import { getErrorMessage } from '@/lib/api/errors'
 import { ProtectedRoute } from '@/components/auth/protected-route'
+import { ErrorBoundary } from '@/components/shared/error-boundary'
 
 type PaymentStatus = 'idle' | 'initiating' | 'waiting' | 'checking' | 'success' | 'failed'
 
@@ -51,10 +53,10 @@ function MpesaPaymentContent() {
         setErrorMessage(response.message || 'Failed to initiate payment')
         toast.error(response.message || 'Failed to initiate payment')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('M-Pesa initiation error:', error)
       setStatus('failed')
-      const message = error.response?.data?.message || error.message || 'Failed to initiate payment'
+      const message = getErrorMessage(error, 'Failed to initiate payment')
       setErrorMessage(message)
       toast.error(message)
     }
@@ -94,7 +96,7 @@ function MpesaPaymentContent() {
       setStatusCheckCount(prev => prev + 1)
       setTimeout(checkPaymentStatus, 5000)
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Status check error:', error)
       // Continue checking even if there's an error
       setStatusCheckCount(prev => prev + 1)
@@ -283,7 +285,9 @@ function MpesaPaymentContent() {
 export default function MpesaPaymentPage() {
   return (
     <ProtectedRoute>
-      <MpesaPaymentContent />
+      <ErrorBoundary>
+        <MpesaPaymentContent />
+      </ErrorBoundary>
     </ProtectedRoute>
   )
 }

@@ -22,6 +22,7 @@ import {
 import { toast } from 'sonner'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { getUserDocuments, uploadDocument, downloadDocument, deleteDocument, Document as APIDocument } from '@/lib/api/documents'
+import { getErrorMessage } from '@/lib/api/errors'
 
 interface Document {
   id: string
@@ -63,8 +64,8 @@ function DocumentsContent() {
         verified: doc.verified
       }))
       setDocuments(transformedDocs)
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to load documents')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to load documents'))
     } finally {
       setIsLoading(false)
     }
@@ -124,8 +125,8 @@ function DocumentsContent() {
 
         toast.success('Document uploaded successfully')
         await loadDocuments() // Reload documents
-      } catch (error: any) {
-        toast.error(error.message || 'Failed to upload document')
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, 'Failed to upload document'))
       } finally {
         setIsUploading(false)
         setUploadProgress(0)
@@ -151,8 +152,8 @@ function DocumentsContent() {
       document.body.removeChild(a)
 
       toast.success('Download started', { id: 'download' })
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to download document', { id: 'download' })
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to download document'), { id: 'download' })
     }
   }
 
@@ -175,8 +176,8 @@ function DocumentsContent() {
       await deleteDocument(docId)
       setDocuments(documents.filter(doc => doc.id !== docId))
       toast.success('Document deleted successfully')
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to delete document')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to delete document'))
     }
   }
 

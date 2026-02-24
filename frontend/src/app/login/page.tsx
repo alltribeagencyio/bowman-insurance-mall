@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/api/errors'
 
 function LoginForm() {
   const { login, isAuthenticated } = useAuth()
@@ -41,8 +42,8 @@ function LoginForm() {
       if (redirectUrl) {
         setTimeout(() => router.push(redirectUrl), 500)
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Login failed. Please check your credentials.')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Login failed. Please check your credentials.'))
     } finally {
       setIsLoading(false)
     }

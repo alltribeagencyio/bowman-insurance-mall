@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getDashboardData } from '@/lib/api/dashboard'
+import { getErrorStatus } from '@/lib/api/errors'
 
 interface DashboardData {
   stats: {
@@ -96,7 +97,7 @@ interface DashboardData {
 
 // Helper function to map icon strings to components
 const getIconComponent = (iconName?: string) => {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
     DollarSign,
     Shield,
     CheckCircle2,
@@ -241,11 +242,11 @@ function DashboardContent() {
         setIsLoading(true)
         const data = await getDashboardData()
         setDashboardData(data)
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error fetching dashboard data:', error)
 
         // Only show error toast for non-401 errors
-        if (error.response?.status !== 401) {
+        if (getErrorStatus(error) !== 401) {
           toast.error('Failed to load dashboard data')
         }
 

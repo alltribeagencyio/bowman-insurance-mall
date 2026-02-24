@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,7 +10,7 @@ import { getCategories, getPolicyTypes, type PolicyCategory, type PolicyType } f
 import { toast } from 'sonner'
 
 // Icon mapping for categories
-const categoryIcons: Record<string, any> = {
+const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   'motor': Car,
   'medical': Heart,
   'life': Users,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,9 +9,10 @@ import { Search, Car, Heart, Users, Home as HomeIcon, Plane, Building2, Briefcas
 import { getFeaturedPolicies } from '@/lib/api/categories'
 import type { PolicyType } from '@/lib/api/categories'
 import { toast } from 'sonner'
+import { getErrorStatus } from '@/lib/api/errors'
 
 // Icon mapping for categories
-const iconMap: Record<string, any> = {
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Car,
   Heart,
   Users,
@@ -45,8 +46,8 @@ export default function Home() {
 
         const featuredData = await getFeaturedPolicies()
         setFeaturedPolicies(featuredData || [])
-      } catch (error: any) {
-        console.error('Failed to load homepage data')
+      } catch (error: unknown) {
+        console.error('Failed to load homepage data', error)
         toast.error('Failed to load policies. Please refresh the page.')
       } finally {
         setLoading(false)

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Shield } from 'lucide-react'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/api/errors'
 
 export default function RegisterPage() {
   const { register } = useAuth()
@@ -42,8 +43,8 @@ export default function RegisterPage() {
     try {
       await register(formData)
       toast.success('Registration successful! Welcome to Bowman Insurance.')
-    } catch (error: any) {
-      toast.error(error.message || 'Registration failed. Please try again.')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Registration failed. Please try again.'))
     } finally {
       setIsLoading(false)
     }

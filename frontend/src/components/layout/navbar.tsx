@@ -1,11 +1,13 @@
 'use client'
 
+import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Menu, X, ShoppingCart, User, LogOut, Car, Heart, Users, Home, Plane, Building2, Search, ArrowLeftRight } from 'lucide-react'
+import { Menu, X, ShoppingCart, User, LogOut, Car, Heart, Users, Home, Plane, Building2, Search, ArrowLeftRight, Bell } from 'lucide-react'
+import { getNotifications, getUnreadCount, markAllAsRead, pollNotifications, type Notification as AppNotification } from '@/lib/api/notifications'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useSidebar } from '@/contexts/sidebar-context'
@@ -14,7 +16,7 @@ import { cn } from '@/lib/utils'
 
 // Helper function to map category icon names to Lucide icon components
 const getCategoryIcon = (iconName: string) => {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
     'Car': Car,
     'Motor': Car,
     'Heart': Heart,
@@ -118,6 +120,12 @@ export function Navbar() {
   const { sidebarCollapsed } = useSidebar()
   const pathname = usePathname()
 
+  // Notification bell state
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [notifications, setNotifications] = useState<AppNotification[]>([])
+  const [notifOpen, setNotifOpen] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
+
   // Check if we're on a dashboard page (where sidebar is visible)
   const isOnDashboardPage = pathname?.startsWith('/dashboard')
 
@@ -138,6 +146,50 @@ export function Navbar() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [searchExpanded])
+
+  // Poll for unread notifications when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const stopPolling = pollNotifications(setUnreadCount, 60000)
+    return stopPolling
+  }, [isAuthenticated])
+
+  // Close notification dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false)
+      }
+    }
+    if (notifOpen) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [notifOpen])
+
+  const handleOpenNotifications = async () => {
+    const opening = !notifOpen
+    setNotifOpen(opening)
+    if (opening) {
+      try {
+        const data = await getNotifications({ limit: 10 })
+        setNotifications(Array.isArray(data) ? data : [])
+        if (unreadCount > 0) {
+          await markAllAsRead()
+          setUnreadCount(0)
+        }
+      } catch {
+        // Fail silently — notification bell is non-critical
+      }
+    }
+  }
+
+  const formatNotifTime = (dateString: string) => {
+    const diff = Date.now() - new Date(dateString).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 60) return `${mins}m ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}h ago`
+    return `${Math.floor(hours / 24)}d ago`
+  }
 
   // Use static categories - they don't change
   const displayCategories = insuranceCategories
@@ -400,6 +452,47 @@ export function Navbar() {
                 <Button variant="ghost" size="icon">
                   <ShoppingCart className="h-5 w-5" />
                 </Button>
+
+                {/* Notification Bell */}
+                <div ref={notifRef} className="relative">
+                  <Button variant="ghost" size="icon" onClick={handleOpenNotifications}>
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-bold">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                  {notifOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-background border rounded-lg shadow-xl z-50 overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-3 border-b">
+                        <h3 className="font-semibold text-sm">Notifications</h3>
+                        <Link href="/dashboard" className="text-xs text-primary hover:underline" onClick={() => setNotifOpen(false)}>View all</Link>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                            No notifications yet
+                          </div>
+                        ) : (
+                          notifications.map((n) => (
+                            <div key={n.id} className={`px-4 py-3 border-b last:border-0 hover:bg-muted/50 transition-colors ${!n.read ? 'bg-primary/5' : ''}`}>
+                              <div className="flex items-start gap-2">
+                                {!n.read && <span className="mt-1.5 h-2 w-2 rounded-full bg-primary flex-shrink-0" />}
+                                <div className={!n.read ? '' : 'pl-4'}>
+                                  <p className="text-sm font-medium">{n.title}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">{formatNotifTime(n.created_at)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <Button variant="ghost" asChild>
                   <Link href="/dashboard">
                     <User className="h-4 w-4 mr-2" />

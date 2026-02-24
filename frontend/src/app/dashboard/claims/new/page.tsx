@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft, Upload, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { submitClaim, uploadFileToS3, uploadClaimDocument, type ClaimSubmitInput } from '@/lib/api/claims'
+import { submitClaim, uploadFileToS3, uploadClaimDocument, type ClaimSubmitInput, type ClaimDocumentInput } from '@/lib/api/claims'
 import { getUserPolicies, type Policy } from '@/lib/api/policies'
 
 interface UploadedFile {
@@ -128,7 +128,7 @@ export default function NewClaimPage() {
 
             // Attach document to claim
             await uploadClaimDocument(claim.id, {
-              document_type: fileData.documentType as any,
+              document_type: fileData.documentType as ClaimDocumentInput['document_type'],
               title: fileData.title,
               file_url: uploadResult.file_url,
               file_size: uploadResult.file_size,

@@ -6,8 +6,10 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { getProfile } from '@/lib/api/auth'
-import { updateUserProfile, changePassword, getNotificationPreferences, updateNotificationPreferences } from '@/lib/api/profile'
-import { getBeneficiaries, createBeneficiary, updateBeneficiary, deleteBeneficiary, setPrimaryBeneficiary } from '@/lib/api/beneficiaries'
+import { updateUserProfile, changePassword, getNotificationPreferences, updateNotificationPreferences, enable2FA, disable2FA, requestAccountDeletion } from '@/lib/api/profile'
+import { getBeneficiaries, deleteBeneficiary, setPrimaryBeneficiary } from '@/lib/api/beneficiaries'
+import { BeneficiaryModal } from '@/components/dashboard/beneficiary-modal'
+import { getErrorMessage } from '@/lib/api/errors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -150,8 +152,8 @@ function ProfileContent() {
       // Load beneficiaries
       const beneficiariesData = await getBeneficiaries()
       setBeneficiaries(beneficiariesData)
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to load profile data')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to load profile data'))
     } finally {
       setIsLoadingData(false)
     }
@@ -159,7 +161,7 @@ function ProfileContent() {
 
   // Password Change State
   const [passwordData, setPasswordData] = useState({
-    current_password: '',
+    old_password: '',
     new_password: '',
     confirm_password: ''
   })
@@ -185,6 +187,10 @@ function ProfileContent() {
   // Security Settings State
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
 
+  // Beneficiary modal state
+  const [showBeneficiaryModal, setShowBeneficiaryModal] = useState(false)
+  const [editingBeneficiary, setEditingBeneficiary] = useState<Beneficiary | null>(null)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -193,8 +199,8 @@ function ProfileContent() {
       await updateUserProfile(formData)
       await updateProfile(formData) // Update auth context
       toast.success('Profile updated successfully!')
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to update profile'))
     } finally {
       setIsLoading(false)
     }
@@ -223,13 +229,13 @@ function ProfileContent() {
     setIsLoading(true)
     try {
       await changePassword({
-        current_password: passwordData.current_password,
+        old_password: passwordData.old_password,
         new_password: passwordData.new_password,
       })
       toast.success('Password changed successfully!')
-      setPasswordData({ current_password: '', new_password: '', confirm_password: '' })
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to change password')
+      setPasswordData({ old_password: '', new_password: '', confirm_password: '' })
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to change password'))
     } finally {
       setIsLoading(false)
     }
@@ -248,8 +254,8 @@ function ProfileContent() {
         await deleteBeneficiary(id)
         setBeneficiaries(beneficiaries.filter(b => b.id !== id))
         toast.success('Beneficiary removed')
-      } catch (error: any) {
-        toast.error(error.message || 'Failed to remove beneficiary')
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, 'Failed to remove beneficiary'))
       }
     }
   }
@@ -266,21 +272,46 @@ function ProfileContent() {
     try {
       await updateNotificationPreferences(notifications)
       toast.success('Notification preferences saved!')
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save preferences')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to save preferences'))
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handle2FAToggle = () => {
-    setTwoFactorEnabled(!twoFactorEnabled)
-    toast.success(twoFactorEnabled ? '2FA disabled' : '2FA enabled')
+  const handle2FAToggle = async () => {
+    try {
+      if (twoFactorEnabled) {
+        await disable2FA()
+        setTwoFactorEnabled(false)
+        toast.success('2FA disabled')
+      } else {
+        await enable2FA()
+        setTwoFactorEnabled(true)
+        toast.success('2FA enabled. Check your authenticator app.')
+      }
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to update 2FA settings'))
+    }
   }
 
-  const handleDeleteAccount = () => {
-    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      toast.error('Account deletion is not yet implemented')
+  const handleSetPrimaryBeneficiary = async (id: string) => {
+    try {
+      await setPrimaryBeneficiary(id)
+      setBeneficiaries(beneficiaries.map(b => ({ ...b, is_primary: b.id === id })))
+      toast.success('Primary beneficiary updated')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to update primary beneficiary'))
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) return
+    try {
+      await requestAccountDeletion('User requested account deletion')
+      toast.success('Account deletion request submitted. You will be contacted.')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to submit account deletion request'))
     }
   }
 
@@ -723,12 +754,12 @@ function ProfileContent() {
             <CardContent>
               <form onSubmit={handlePasswordChange} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="current_password">Current Password</Label>
+                  <Label htmlFor="old_password">Current Password</Label>
                   <Input
-                    id="current_password"
-                    name="current_password"
+                    id="old_password"
+                    name="old_password"
                     type="password"
-                    value={passwordData.current_password}
+                    value={passwordData.old_password}
                     onChange={handlePasswordInputChange}
                     required
                     disabled={isLoading}
@@ -826,7 +857,7 @@ function ProfileContent() {
                     Manage who receives benefits from your policies
                   </CardDescription>
                 </div>
-                <Button>
+                <Button onClick={() => { setEditingBeneficiary(null); setShowBeneficiaryModal(true) }}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Beneficiary
                 </Button>
@@ -840,7 +871,7 @@ function ProfileContent() {
                   <p className="text-muted-foreground mb-4">
                     Add beneficiaries to your policies
                   </p>
-                  <Button>
+                  <Button onClick={() => { setEditingBeneficiary(null); setShowBeneficiaryModal(true) }}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Your First Beneficiary
                   </Button>
@@ -872,7 +903,20 @@ function ProfileContent() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
+                            {!beneficiary.is_primary && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSetPrimaryBeneficiary(beneficiary.id)}
+                              >
+                                Set Primary
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => { setEditingBeneficiary(beneficiary); setShowBeneficiaryModal(true) }}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
@@ -1100,6 +1144,21 @@ function ProfileContent() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Beneficiary Modal */}
+      <BeneficiaryModal
+        isOpen={showBeneficiaryModal}
+        onClose={() => { setShowBeneficiaryModal(false); setEditingBeneficiary(null) }}
+        beneficiary={editingBeneficiary}
+        existingPercentage={beneficiaries
+          .filter(b => b.id !== editingBeneficiary?.id)
+          .reduce((sum, b) => sum + b.percentage, 0)}
+        onSuccess={() => {
+          setShowBeneficiaryModal(false)
+          setEditingBeneficiary(null)
+          loadUserData()
+        }}
+      />
     </div>
   )
 }

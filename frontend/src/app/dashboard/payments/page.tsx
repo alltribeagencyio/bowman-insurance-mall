@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { paymentsApi } from '@/lib/api/payments'
+import { getErrorStatus } from '@/lib/api/errors'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import type { Transaction, PaymentSummary } from '@/types/payment'
 
@@ -42,7 +43,7 @@ function PaymentsContent() {
 
       setTransactions(transactionsData.results)
       setSummary(summaryData)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch payments:', error)
       toast.error('Failed to load payment history')
     } finally {

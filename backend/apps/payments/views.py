@@ -4,9 +4,15 @@ API endpoints for payment processing, verification, and management
 """
 
 from rest_framework import generics, status, viewsets
-from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.decorators import api_view, permission_classes, action, throttle_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.throttling import UserRateThrottle
+
+
+class PaymentRateThrottle(UserRateThrottle):
+    """Stricter rate limit for payment initiation endpoints (20 per hour per user)."""
+    scope = 'payment_initiate'
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
@@ -108,6 +114,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([PaymentRateThrottle])
 def initiate_payment(request):
     """
     Initiate a new payment transaction
@@ -149,6 +156,7 @@ def initiate_payment(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([PaymentRateThrottle])
 def mpesa_initiate(request):
     """Initiate M-Pesa STK Push"""
     serializer = MpesaInitiateSerializer(data=request.data)
@@ -205,6 +213,14 @@ def mpesa_initiate(request):
 def mpesa_callback(request):
     """M-Pesa callback handler"""
     try:
+        # Verify callback secret (production security)
+        callback_secret = request.GET.get('secret', '')
+        if not mpesa_service.verify_callback_secret(callback_secret):
+            logger.warning(
+                f"Invalid M-Pesa callback secret from IP {request.META.get('REMOTE_ADDR')}"
+            )
+            return JsonResponse({'ResultCode': 1, 'ResultDesc': 'Unauthorized'}, status=400)
+
         callback_data = json.loads(request.body)
         logger.info(f"M-Pesa callback received: {callback_data}")
 
@@ -285,6 +301,7 @@ def mpesa_status(request, transaction_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([PaymentRateThrottle])
 def paystack_initialize(request):
     """Initialize Paystack payment"""
     serializer = PaystackInitializeSerializer(data=request.data)

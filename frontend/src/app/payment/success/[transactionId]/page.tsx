@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2, Download, Home, FileText, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { paymentsApi } from '@/lib/api/payments'
+import { getErrorStatus } from '@/lib/api/errors'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import type { Transaction, Receipt } from '@/types/payment'
 
@@ -33,7 +34,7 @@ function PaymentSuccessContent() {
 
       setTransaction(transactionData)
       setReceipt(receiptData)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch transaction:', error)
       toast.error('Failed to load transaction details')
     } finally {

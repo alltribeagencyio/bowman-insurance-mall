@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner'
 import { getAdminDashboard } from '@/lib/api/admin'
 import type { AdminDashboardData } from '@/lib/api/admin'
+import { getErrorMessage } from '@/lib/api/errors'
 
 export default function AdminDashboard() {
   const [data, setData] = useState<AdminDashboardData | null>(null)
@@ -35,9 +36,9 @@ export default function AdminDashboard() {
     try {
       const dashboardData = await getAdminDashboard()
       setData(dashboardData)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load dashboard data:', error)
-      toast.error(error.response?.data?.message || 'Failed to load dashboard data')
+      toast.error(getErrorMessage(error, 'Failed to load dashboard data'))
     } finally {
       setIsLoading(false)
     }

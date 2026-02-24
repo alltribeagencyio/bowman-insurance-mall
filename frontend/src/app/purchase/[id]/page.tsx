@@ -42,7 +42,9 @@ import { getPolicyTypeById } from '@/lib/api/categories'
 import { purchasePolicy } from '@/lib/api/purchase'
 import { paymentsApi } from '@/lib/api/payments'
 import { apiClient } from '@/lib/api/client'
+import { getErrorMessage, getErrorStatus } from '@/lib/api/errors'
 import { getUserVehicles, createAsset, type Asset } from '@/lib/api/assets'
+import { ErrorBoundary } from '@/components/shared/error-boundary'
 
 interface PurchaseStep {
   id: string
@@ -73,8 +75,8 @@ function AuthModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: (
       toast.success('Login successful!')
       onSuccess()
       onClose()
-    } catch (error: any) {
-      toast.error(error.message || 'Login failed. Please check your credentials.')
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Login failed. Please check your credentials.'))
     } finally {
       setIsLoading(false)
     }
@@ -106,9 +108,9 @@ function AuthModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: (
 
       // Reload to update auth context
       window.location.reload()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Registration failed:', error)
-      toast.error(error.response?.data?.message || error.response?.data?.email?.[0] || 'Registration failed')
+      toast.error(getErrorMessage(error, 'Registration failed'))
     } finally {
       setIsLoading(false)
     }
@@ -483,23 +485,23 @@ export default function PurchasePage() {
         router.push(`/payment/${policy.id}`)
       }, 1000)
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error purchasing policy:', error)
 
       // Handle specific error cases
-      if (error.response?.status === 401) {
+      if (getErrorStatus(error) === 401) {
         toast.error('Your session has expired. Please login again.')
         setShowAuthModal(true)
       } else {
-        toast.error(error.response?.data?.message || 'Failed to purchase policy. Please try again.')
+        toast.error(getErrorMessage(error, 'Failed to purchase policy. Please try again.'))
       }
     }
   }
 
-  const updateFormData = (section: string, data: any) => {
-    setFormData((prev: any) => ({
+  const updateFormData = (section: string, data: Record<string, unknown>) => {
+    setFormData((prev: Record<string, unknown>) => ({
       ...prev,
-      [section]: { ...prev[section], ...data }
+      [section]: { ...(prev[section] as Record<string, unknown>), ...data }
     }))
   }
 
@@ -543,6 +545,7 @@ export default function PurchasePage() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-background">
       {/* Auth Modal */}
       <AuthModal
@@ -685,6 +688,7 @@ export default function PurchasePage() {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   )
 }
 
