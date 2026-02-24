@@ -320,7 +320,7 @@ export default function PoliciesPage() {
   const loadUserPolicies = async () => {
     setIsLoadingPolicies(true)
     try {
-      const response = await apiClient.get('/api/v1/admin/policies/')
+      const response = await apiClient.get('admin/policies/')
       setUserPolicies(response.data?.results || [])
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, 'Failed to load user policies'))

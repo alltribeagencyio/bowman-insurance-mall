@@ -20,6 +20,9 @@ class Command(BaseCommand):
         # Create admin user if not exists
         self.create_admin_user()
 
+        # Create test customer user if not exists
+        self.create_test_customer()
+
         # Create insurance companies
         companies = self.create_insurance_companies()
         self.stdout.write(self.style.SUCCESS(f'✓ Created {len(companies)} insurance companies'))
@@ -51,6 +54,23 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('✓ Created admin user (admin@bowman.co.ke / Admin123!)'))
         else:
             self.stdout.write(self.style.WARNING('⚠ Admin user already exists'))
+
+    def create_test_customer(self):
+        """Create test customer user if not exists"""
+        from apps.users.models import NotificationPreference
+        if not User.objects.filter(email='customer@test.com').exists():
+            customer = User.objects.create_user(
+                email='customer@test.com',
+                password='Customer123!',
+                first_name='Test',
+                last_name='Customer',
+                phone='+254711111111',
+                role='customer',
+            )
+            NotificationPreference.objects.get_or_create(user=customer)
+            self.stdout.write(self.style.SUCCESS('✓ Created test customer (customer@test.com / Customer123!)'))
+        else:
+            self.stdout.write(self.style.WARNING('⚠ Test customer already exists'))
 
     def create_insurance_companies(self):
         """Create sample insurance companies"""

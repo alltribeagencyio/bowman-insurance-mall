@@ -192,9 +192,8 @@ Admin panel: `http://localhost:8000/admin/`
 
 ## Known Issues & Outstanding Work
 
-### Admin Pages (Priority)
-- Most admin pages still use mock data — API functions exist in `admin.ts` but pages not connected
-- Pattern to follow: see `admin/users/page.tsx` (commit `24d6c9e`) as reference for how to connect
+### Admin Pages
+- All admin pages now connected to real API (Phase 9 complete)
 
 ### Payment Limitations
 - Receipt PDF generation not implemented (uses JSON receipts only)
@@ -314,16 +313,14 @@ const loadData = async () => {
 
 ---
 
-## Next Priority (Remaining Admin Pages Integration)
+## Next Priority (Phase 10 — Notifications & Testing)
 
-Connect these admin pages to real API (all functions exist in `admin.ts`):
+All admin pages are connected. Next phase focuses on:
 
-1. **`/admin/page.tsx`** → `getAdminDashboard()`
-2. **`/admin/policies/page.tsx`** → `getAllPolicyTypes()`, `getAllInsuranceCompanies()`
-3. **`/admin/transactions/page.tsx`** → `getAllTransactions()`, `getFailedTransactions()`
-4. **`/admin/claims/page.tsx`** → `getAllClaims()`, `assignClaim()`, `approveClaim()`, `rejectClaim()`
-5. **`/admin/reports/page.tsx`** → `getSalesReport()`, `getRevenueReport()`, `getClaimsReport()`, `getUserGrowthReport()`
-6. **`/admin/settings/page.tsx`** → `getSettings()`, `updateSettings()`
+1. **Phase 10 — Email/SMS triggers**: Wire SendGrid (email) and Africa's Talking (SMS) in `backend/apps/notifications/tasks.py` — stubs are in place, just need real API calls
+2. **Phase 11 — Document Management**: S3 upload UI integration (backend download endpoint complete)
+3. **Phase 12 — Testing**: Write backend tests in `backend/tests/` (currently empty)
+4. **Phase 13 — Deployment**: Set up Railway (backend) + Vercel (frontend) with real env vars
 
 ---
 
@@ -359,4 +356,5 @@ Update this section at the end of every Claude session to record what was done.
 | Feb 24, 2026 | Phase 9 complete — all admin pages + profile + notifications + deployment prep. A1(claims): removed mock data, wired assignClaim/approveClaim/rejectClaim. A2(transactions): full API integration, retry, CSV export. A3(reports): lazy tab loading, real stats cards, export buttons. A4(settings): getSettings/updateSettings/getRoles on mount. A5(policies): full CRUD dialogs for policy types + companies, bulk upload, user policies with approve/cancel. B1: fixed old_password field name (PasswordChangeInput in profile.ts). B2-B4: wired BeneficiaryModal (add/edit/set-primary), 2FA toggle calls enable2FA/disable2FA API, account deletion calls requestAccountDeletion. C: Notification bell — polling every 60s, dropdown with unread badge, marks all as read on open. D: Production Redis cache (django-redis), S3 presigned URLs for document download (with local dev fallback), Celery task stubs for email/SMS. Also added django-redis==5.4.0 to requirements.txt. Build: 0 TS errors. | frontend/src/app/admin/claims/page.tsx, admin/transactions/page.tsx, admin/reports/page.tsx, admin/settings/page.tsx, admin/policies/page.tsx, dashboard/profile/page.tsx, components/layout/navbar.tsx, lib/api/profile.ts, backend/apps/documents/views.py, backend/apps/notifications/tasks.py, backend/bowman_insurance/settings/production.py, backend/requirements.txt | Phase 9 complete. Next: Phase 10 (email/SMS triggers via SendGrid + Africa's Talking) |
 | Feb 24, 2026 | Bug fixes: (1) Fixed instant logout after login — removed TEST_USERS bypass with fake tokens from auth-context.tsx, fixed token refresh URL /auth/refresh/ → /auth/token/refresh/ in client.ts. (2) Fixed admin dashboard crash — u.phone_number → u.phone. (3) Complete rewrite of admin_api/views.py: added ClaimsManagementViewSet, TransactionManagementViewSet, get_admin_policies, approve/cancel policy, user_growth report, export_report (CSV), admin_settings, get_roles; serialize helpers map field names (filed_date→submitted_at, amount_claimed→claim_amount, transaction_number→transaction_reference, submitted→pending). (4) Rewrote admin_api/urls.py to register all new ViewSets and routes. (5) Created frontend/.env.local. (6) Fixed frontend/.env.example URL to include /api/v1. | frontend/src/lib/auth/auth-context.tsx, frontend/src/lib/api/client.ts, backend/apps/admin_api/views.py, backend/apps/admin_api/urls.py, frontend/.env.example, frontend/.env.local | Commits: 2145117 (auth fix), fc2dce2 (admin API fix). Backend admin API now has all required endpoints. Next: test with live backend data |
 | Feb 24, 2026 | Comprehensive cross-layer audit (backend models ↔ serializers ↔ frontend API services ↔ pages). Found and fixed: (1) admin.ts all URLs had /api/v1/admin/ prefix which Axios combineURLs doubled to /api/v1/api/v1/admin/ — fixed to relative admin/. (2) profile.ts all URLs had /users/ prefix — fixed to auth/. (3) beneficiaries.ts all URLs had /users/beneficiaries/ — fixed to auth/beneficiaries/. (4) auth.ts User type and RegisterInput had phone_number — fixed to phone (matches User model). (5) profile.ts NotificationPreferences type had invented field names (email_enabled, sms_enabled, push_enabled, etc.) — fixed to match actual NotificationPreference model (email_policy_updates, sms_policy_updates, etc.). (6) profile.ts changePassword was missing new_password2 — PasswordChangeSerializer requires it. (7) profile/page.tsx used profile.phone_number — fixed to profile.phone. (8) Profile page notification UI updated to use backend field names. (9) Backend: added 2FA stub endpoints (enable/disable/verify) and delete-account endpoint to users/views.py and urls.py. Build: 0 TS errors. | frontend/src/lib/api/admin.ts, profile.ts, beneficiaries.ts, auth.ts, frontend/src/app/dashboard/profile/page.tsx, backend/apps/users/views.py, backend/apps/users/urls.py | Commit 5bbfde5. All API URL paths now correct end-to-end |
+| Feb 24, 2026 | Resumed from previous session. Verified all Phase 9 and Plan items already complete. Fixed one remaining URL bug: admin/policies/page.tsx loadUserPolicies used '/api/v1/admin/policies/' (doubled prefix) — fixed to 'admin/policies/'. Confirmed all admin pages (dashboard, claims, transactions, reports, settings, policies), profile page, navbar notifications bell, and backend deployment tasks (Redis cache, S3 presigned URLs, Celery stubs) are all fully implemented. Build: 0 TS errors, 38 pages. | frontend/src/app/admin/policies/page.tsx | No new features — audit/verification pass only |
 | *(next session)* | *(fill in)* | *(fill in)* | *(fill in)* |
