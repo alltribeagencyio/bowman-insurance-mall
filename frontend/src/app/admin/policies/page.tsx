@@ -163,11 +163,12 @@ function CompanyDialog({ open, initial, onClose, onSaved }: CompanyDialogProps) 
   const [isSaving, setIsSaving] = useState(false)
   const [form, setForm] = useState({
     name: initial?.name ?? '',
-    code: initial?.code ?? '',
-    commission_rate: initial?.commission_rate ?? 0,
+    description: initial?.description ?? '',
     contact_email: initial?.contact_email ?? '',
     contact_phone: initial?.contact_phone ?? '',
     logo: initial?.logo ?? '',
+    website: initial?.website ?? '',
+    rating: initial?.rating ?? 0,
     is_active: initial?.is_active ?? true,
   })
 
@@ -175,11 +176,12 @@ function CompanyDialog({ open, initial, onClose, onSaved }: CompanyDialogProps) 
     if (open) {
       setForm({
         name: initial?.name ?? '',
-        code: initial?.code ?? '',
-        commission_rate: initial?.commission_rate ?? 0,
+        description: initial?.description ?? '',
         contact_email: initial?.contact_email ?? '',
         contact_phone: initial?.contact_phone ?? '',
         logo: initial?.logo ?? '',
+        website: initial?.website ?? '',
+        rating: initial?.rating ?? 0,
         is_active: initial?.is_active ?? true,
       })
     }
@@ -187,8 +189,8 @@ function CompanyDialog({ open, initial, onClose, onSaved }: CompanyDialogProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name || !form.code) {
-      toast.error('Name and code are required')
+    if (!form.name) {
+      toast.error('Company name is required')
       return
     }
     setIsSaving(true)
@@ -217,19 +219,13 @@ function CompanyDialog({ open, initial, onClose, onSaved }: CompanyDialogProps) 
           <DialogDescription>Fill in the company details below</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Company Name *</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Jubilee Insurance" required />
-            </div>
-            <div className="space-y-2">
-              <Label>Code *</Label>
-              <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="e.g. JUB" maxLength={10} required />
-            </div>
+          <div className="space-y-2">
+            <Label>Company Name *</Label>
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Jubilee Insurance" required />
           </div>
           <div className="space-y-2">
-            <Label>Commission Rate (%)</Label>
-            <Input type="number" value={form.commission_rate} onChange={e => setForm(f => ({ ...f, commission_rate: Number(e.target.value) }))} min={0} max={100} step={0.1} />
+            <Label>Description</Label>
+            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Brief description..." />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -239,6 +235,16 @@ function CompanyDialog({ open, initial, onClose, onSaved }: CompanyDialogProps) 
             <div className="space-y-2">
               <Label>Contact Phone</Label>
               <Input value={form.contact_phone} onChange={e => setForm(f => ({ ...f, contact_phone: e.target.value }))} placeholder="+254..." />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Website</Label>
+              <Input value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Rating (0–5)</Label>
+              <Input type="number" value={form.rating} onChange={e => setForm(f => ({ ...f, rating: Number(e.target.value) }))} min={0} max={5} step={0.1} />
             </div>
           </div>
           <div className="space-y-2">
@@ -607,8 +613,7 @@ export default function PoliciesPage() {
                     <thead>
                       <tr className="border-b">
                         <th className="text-left p-4 font-medium">Company Name</th>
-                        <th className="text-left p-4 font-medium">Code</th>
-                        <th className="text-left p-4 font-medium">Commission %</th>
+                        <th className="text-left p-4 font-medium">Rating</th>
                         <th className="text-left p-4 font-medium">Contact</th>
                         <th className="text-left p-4 font-medium">Status</th>
                         <th className="text-right p-4 font-medium">Actions</th>
@@ -618,8 +623,7 @@ export default function PoliciesPage() {
                       {filteredCompanies.map((company) => (
                         <tr key={company.id} className="border-b hover:bg-muted/50">
                           <td className="p-4 font-medium">{company.name}</td>
-                          <td className="p-4 font-mono text-sm">{company.code}</td>
-                          <td className="p-4">{company.commission_rate}%</td>
+                          <td className="p-4 text-sm">{company.rating ? `${company.rating}/5` : '—'}</td>
                           <td className="p-4 text-sm text-muted-foreground">{company.contact_email}</td>
                           <td className="p-4">
                             <Badge variant={company.is_active ? 'default' : 'secondary'}>

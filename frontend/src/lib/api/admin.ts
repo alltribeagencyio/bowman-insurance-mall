@@ -87,12 +87,13 @@ export interface PolicyType {
 export interface InsuranceCompany {
   id: string
   name: string
-  code: string
-  commission_rate: number
-  is_active: boolean
+  description: string
   logo?: string
+  rating: number
   contact_email: string
   contact_phone: string
+  website: string
+  is_active: boolean
 }
 
 export interface Task {
@@ -281,7 +282,8 @@ export const settleClaim = async (claimId: string): Promise<Claim> => {
 
 export const getAllPolicyTypes = async (): Promise<PolicyType[]> => {
   const response = await apiClient.get('admin/policy-types/')
-  return response.data
+  const data = response.data
+  return Array.isArray(data) ? data : (data.results || [])
 }
 
 export const createPolicyType = async (policyTypeData: Partial<PolicyType>): Promise<PolicyType> => {
@@ -309,7 +311,8 @@ export const bulkUploadPolicyTypes = async (file: File): Promise<{ success: numb
 
 export const getAllInsuranceCompanies = async (): Promise<InsuranceCompany[]> => {
   const response = await apiClient.get('admin/insurance-companies/')
-  return response.data
+  const data = response.data
+  return Array.isArray(data) ? data : (data.results || [])
 }
 
 export const createInsuranceCompany = async (companyData: Partial<InsuranceCompany>): Promise<InsuranceCompany> => {

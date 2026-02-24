@@ -393,12 +393,14 @@ class PolicyTypeManagementViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdmin]
     serializer_class = PolicyTypeSerializer
     queryset = PolicyType.objects.select_related('category').all()
+    pagination_class = None  # Return plain array, not paginated object
 
 
 class InsuranceCompanyManagementViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdmin]
     serializer_class = InsuranceCompanySerializer
     queryset = InsuranceCompany.objects.all()
+    pagination_class = None  # Return plain array, not paginated object
 
 
 @api_view(['GET'])

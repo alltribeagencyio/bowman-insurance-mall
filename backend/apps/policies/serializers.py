@@ -39,6 +39,10 @@ class PolicyCategorySerializer(serializers.ModelSerializer):
 
 class PolicyTypeSerializer(serializers.ModelSerializer):
     """Basic serializer for policy types (used by admin API)"""
+    category = serializers.SlugRelatedField(
+        slug_field='name',
+        queryset=PolicyCategory.objects.all()
+    )
 
     class Meta:
         model = PolicyType
