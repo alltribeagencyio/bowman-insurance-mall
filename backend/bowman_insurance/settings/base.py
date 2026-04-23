@@ -14,8 +14,17 @@ load_dotenv()
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-development-key-change-in-production')
+# Fail fast on missing SECRET_KEY in production; allow insecure fallback only in dev.
+_secret_key = os.getenv('SECRET_KEY')
+if not _secret_key:
+    _env = os.getenv('ENVIRONMENT', 'development')
+    if _env == 'production':
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured(
+            "SECRET_KEY environment variable must be set in production."
+        )
+    _secret_key = 'django-insecure-dev-only-NOT-for-production'
+SECRET_KEY = _secret_key
 
 # Application definition
 INSTALLED_APPS = [
@@ -288,11 +297,5 @@ LOGGING = {
     },
 }
 
-# Silence admin field errors temporarily (admin configs need to be updated to match model fields)
-SILENCED_SYSTEM_CHECKS = [
-    'admin.E035',  # readonly_fields field not found
-    'admin.E108',  # list_display field not found
-    'admin.E116',  # list_filter field not found
-    'admin.E127',  # date_hierarchy field not found
-    'staticfiles.W004',  # static directory doesn't exist (handled by whitenoise)
-]
+# staticfiles.W004 is expected — static dir is created by collectstatic at build time
+SILENCED_SYSTEM_CHECKS = ['staticfiles.W004']

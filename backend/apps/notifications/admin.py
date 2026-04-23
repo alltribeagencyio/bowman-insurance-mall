@@ -4,83 +4,56 @@ from .models import Notification, EmailLog, SMSLog
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
-    """Admin interface for Notification model"""
-
-    list_display = (
-        'user', 'notification_type', 'channel',
-        'is_read', 'sent_at', 'created_at'
-    )
-    list_filter = ('notification_type', 'channel', 'is_read', 'sent_at', 'created_at')
+    list_display = ('user', 'type', 'title', 'read', 'created_at')
+    list_filter = ('type', 'read', 'created_at')
     search_fields = ('user__email', 'title', 'message')
-    readonly_fields = ('created_at', 'sent_at', 'read_at')
+    readonly_fields = ('created_at', 'read_at')
     date_hierarchy = 'created_at'
 
     fieldsets = (
         (None, {'fields': ('user',)}),
-        ('Notification Details', {'fields': (
-            'notification_type', 'channel', 'title', 'message'
-        )}),
-        ('Status', {'fields': ('is_read', 'read_at', 'sent_at')}),
-        ('Metadata', {'fields': ('metadata',)}),
+        ('Notification Details', {'fields': ('type', 'title', 'message', 'action_url')}),
+        ('Status', {'fields': ('read', 'read_at')}),
         ('Timestamps', {'fields': ('created_at',)}),
     )
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user')
+        return super().get_queryset(request).select_related('user')
 
 
 @admin.register(EmailLog)
 class EmailLogAdmin(admin.ModelAdmin):
-    """Admin interface for EmailLog model"""
-
-    list_display = (
-        'recipient_email', 'subject', 'status',
-        'provider', 'sent_at', 'created_at'
-    )
-    list_filter = ('status', 'provider', 'sent_at', 'created_at')
-    search_fields = ('recipient_email', 'subject', 'message_id', 'error_message')
+    list_display = ('to_email', 'subject', 'status', 'sent_at', 'created_at')
+    list_filter = ('status', 'sent_at', 'created_at')
+    search_fields = ('to_email', 'subject', 'error_message')
     readonly_fields = ('created_at', 'sent_at')
     date_hierarchy = 'created_at'
 
     fieldsets = (
-        (None, {'fields': ('user', 'notification')}),
-        ('Email Details', {'fields': (
-            'recipient_email', 'subject', 'body', 'html_body'
-        )}),
-        ('Provider', {'fields': ('provider', 'message_id')}),
+        (None, {'fields': ('user',)}),
+        ('Email Details', {'fields': ('to_email', 'subject', 'template')}),
         ('Status', {'fields': ('status', 'error_message', 'sent_at')}),
-        ('Metadata', {'fields': ('metadata',)}),
         ('Timestamps', {'fields': ('created_at',)}),
     )
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user', 'notification')
+        return super().get_queryset(request).select_related('user')
 
 
 @admin.register(SMSLog)
 class SMSLogAdmin(admin.ModelAdmin):
-    """Admin interface for SMSLog model"""
-
-    list_display = (
-        'recipient_phone', 'status', 'provider',
-        'sent_at', 'created_at'
-    )
-    list_filter = ('status', 'provider', 'sent_at', 'created_at')
-    search_fields = ('recipient_phone', 'message', 'message_id', 'error_message')
+    list_display = ('to_phone', 'status', 'sent_at', 'created_at')
+    list_filter = ('status', 'sent_at', 'created_at')
+    search_fields = ('to_phone', 'message', 'error_message')
     readonly_fields = ('created_at', 'sent_at')
     date_hierarchy = 'created_at'
 
     fieldsets = (
-        (None, {'fields': ('user', 'notification')}),
-        ('SMS Details', {'fields': ('recipient_phone', 'message')}),
-        ('Provider', {'fields': ('provider', 'message_id')}),
-        ('Status', {'fields': ('status', 'error_message', 'sent_at')}),
-        ('Metadata', {'fields': ('metadata',)}),
+        (None, {'fields': ('user',)}),
+        ('SMS Details', {'fields': ('to_phone', 'message')}),
+        ('Status', {'fields': ('status', 'error_message', 'provider_response', 'sent_at')}),
         ('Timestamps', {'fields': ('created_at',)}),
     )
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user', 'notification')
+        return super().get_queryset(request).select_related('user')

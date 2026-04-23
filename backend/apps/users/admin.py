@@ -6,8 +6,6 @@ from .models import User, NotificationPreference
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    """Admin interface for User model"""
-
     list_display = ('email', 'first_name', 'last_name', 'role', 'is_verified', 'is_active', 'created_at')
     list_filter = ('role', 'is_verified', 'is_active', 'is_staff', 'created_at')
     search_fields = ('email', 'first_name', 'last_name', 'phone', 'id_number')
@@ -33,33 +31,20 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(NotificationPreference)
 class NotificationPreferenceAdmin(admin.ModelAdmin):
-    """Admin interface for NotificationPreference model"""
-
-    list_display = ('user', 'email_notifications', 'sms_notifications', 'whatsapp_notifications', 'updated_at')
-    list_filter = ('email_notifications', 'sms_notifications', 'whatsapp_notifications')
+    list_display = ('user', 'email_policy_updates', 'sms_policy_updates', 'whatsapp_enabled', 'updated_at')
+    list_filter = ('email_policy_updates', 'sms_policy_updates', 'whatsapp_enabled')
     search_fields = ('user__email', 'user__first_name', 'user__last_name')
     readonly_fields = ('created_at', 'updated_at')
 
     fieldsets = (
         (None, {'fields': ('user',)}),
         ('Email Preferences', {'fields': (
-            'email_notifications',
-            'policy_updates_email',
-            'payment_reminders_email',
-            'claims_updates_email',
-            'marketing_email',
+            'email_policy_updates', 'email_payment_reminders',
+            'email_claim_updates', 'email_marketing',
         )}),
         ('SMS Preferences', {'fields': (
-            'sms_notifications',
-            'policy_updates_sms',
-            'payment_reminders_sms',
-            'claims_updates_sms',
+            'sms_policy_updates', 'sms_payment_reminders', 'sms_claim_updates',
         )}),
-        ('WhatsApp Preferences', {'fields': (
-            'whatsapp_notifications',
-            'policy_updates_whatsapp',
-            'payment_reminders_whatsapp',
-            'claims_updates_whatsapp',
-        )}),
+        ('Other Channels', {'fields': ('whatsapp_enabled', 'in_app_enabled')}),
         ('Timestamps', {'fields': ('created_at', 'updated_at')}),
     )

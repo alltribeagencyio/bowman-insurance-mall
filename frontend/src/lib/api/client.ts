@@ -1,10 +1,13 @@
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!API_URL) {
+  throw new Error('NEXT_PUBLIC_API_URL is not set. Add it to .env.local or as a build argument.')
+}
 
 // Create axios instance
 export const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: API_URL as string,
   headers: {
     'Content-Type': 'application/json',
   },

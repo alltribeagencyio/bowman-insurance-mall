@@ -25,15 +25,15 @@ class Command(BaseCommand):
 
         # Create insurance companies
         companies = self.create_insurance_companies()
-        self.stdout.write(self.style.SUCCESS(f'✓ Created {len(companies)} insurance companies'))
+        self.stdout.write(self.style.SUCCESS(f'[OK] Created {len(companies)} insurance companies'))
 
         # Create policy categories
         categories = self.create_policy_categories()
-        self.stdout.write(self.style.SUCCESS(f'✓ Created {len(categories)} policy categories'))
+        self.stdout.write(self.style.SUCCESS(f'[OK] Created {len(categories)} policy categories'))
 
         # Create policy types
         policy_types = self.create_policy_types(companies, categories)
-        self.stdout.write(self.style.SUCCESS(f'✓ Created {len(policy_types)} policy types'))
+        self.stdout.write(self.style.SUCCESS(f'[OK] Created {len(policy_types)} policy types'))
 
         self.stdout.write(self.style.SUCCESS('\n=== DATA POPULATION COMPLETE ==='))
         self.stdout.write(self.style.SUCCESS(f'Insurance Companies: {len(companies)}'))
@@ -51,9 +51,9 @@ class Command(BaseCommand):
                 last_name='User',
                 phone='+254700000000'
             )
-            self.stdout.write(self.style.SUCCESS('✓ Created admin user (admin@bowman.co.ke / Admin123!)'))
+            self.stdout.write(self.style.SUCCESS('[OK] Created admin user (admin@bowman.co.ke / Admin123!)'))
         else:
-            self.stdout.write(self.style.WARNING('⚠ Admin user already exists'))
+            self.stdout.write(self.style.WARNING('[SKIP] Admin user already exists'))
 
     def create_test_customer(self):
         """Create test customer user if not exists"""
@@ -68,9 +68,9 @@ class Command(BaseCommand):
                 role='customer',
             )
             NotificationPreference.objects.get_or_create(user=customer)
-            self.stdout.write(self.style.SUCCESS('✓ Created test customer (customer@test.com / Customer123!)'))
+            self.stdout.write(self.style.SUCCESS('[OK] Created test customer (customer@test.com / Customer123!)'))
         else:
-            self.stdout.write(self.style.WARNING('⚠ Test customer already exists'))
+            self.stdout.write(self.style.WARNING('[SKIP] Test customer already exists'))
 
     def create_insurance_companies(self):
         """Create sample insurance companies"""

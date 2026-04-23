@@ -211,7 +211,6 @@ class RefundSerializer(serializers.ModelSerializer):
             'status_display',
             'processed_at',
             'processed_by',
-            'notes',
             'created_at',
             'updated_at'
         ]

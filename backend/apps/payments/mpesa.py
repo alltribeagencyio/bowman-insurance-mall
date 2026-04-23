@@ -290,13 +290,15 @@ class MpesaService:
 
     def verify_callback_secret(self, request_secret: str) -> bool:
         """
-        Verify M-Pesa callback using shared secret embedded in the callback URL.
+        Verify M-Pesa callback using shared secret sent in the X-Callback-Secret header.
 
         In sandbox mode or when MPESA_CALLBACK_SECRET is not configured,
         verification is skipped (Safaricom sandbox does not send secrets).
 
-        In production, set MPESA_CALLBACK_SECRET and include it in the callback URL:
-        https://yourdomain.com/api/v1/payments/mpesa/callback/?secret=<MPESA_CALLBACK_SECRET>
+        In production, set MPESA_CALLBACK_SECRET and configure your M-Pesa callback URL
+        WITHOUT the secret in the URL. Instead, pass it via a proxy or use the header approach.
+        Register the plain URL with Safaricom:
+            https://yourdomain.com/api/v1/payments/mpesa/callback/
         """
         if self.environment == 'sandbox' or not self.callback_secret:
             return True

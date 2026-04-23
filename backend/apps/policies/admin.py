@@ -145,17 +145,18 @@ class PolicyAdmin(admin.ModelAdmin):
 class PolicyReviewAdmin(admin.ModelAdmin):
     """Admin interface for PolicyReview model"""
 
-    list_display = ('user', 'policy_type', 'rating', 'created_at')
-    list_filter = ('rating', 'created_at')
-    search_fields = ('user__email', 'policy_type__name', 'review')
+    list_display = ('user', 'policy', 'rating', 'is_verified_purchase', 'created_at')
+    list_filter = ('rating', 'is_verified_purchase', 'is_published', 'created_at')
+    search_fields = ('user__email', 'policy__policy_number', 'title', 'comment')
     readonly_fields = ('created_at', 'updated_at')
 
     fieldsets = (
-        (None, {'fields': ('user', 'policy_type', 'rating')}),
-        ('Review Content', {'fields': ('review',)}),
+        (None, {'fields': ('user', 'policy', 'rating')}),
+        ('Review Content', {'fields': ('title', 'comment')}),
+        ('Flags', {'fields': ('is_verified_purchase', 'is_published')}),
         ('Timestamps', {'fields': ('created_at', 'updated_at')}),
     )
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('user', 'policy_type')
+        return qs.select_related('user', 'policy')

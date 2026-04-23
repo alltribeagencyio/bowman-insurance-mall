@@ -213,8 +213,8 @@ def mpesa_initiate(request):
 def mpesa_callback(request):
     """M-Pesa callback handler"""
     try:
-        # Verify callback secret (production security)
-        callback_secret = request.GET.get('secret', '')
+        # Verify callback secret from header (never from URL — query params appear in logs)
+        callback_secret = request.headers.get('X-Callback-Secret', '')
         if not mpesa_service.verify_callback_secret(callback_secret):
             logger.warning(
                 f"Invalid M-Pesa callback secret from IP {request.META.get('REMOTE_ADDR')}"
