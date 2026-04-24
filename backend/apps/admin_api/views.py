@@ -131,7 +131,7 @@ def get_admin_dashboard(request):
     recent_transactions = Transaction.objects.select_related('user', 'policy').order_by('-created_at')[:10]
 
     recent_users = User.objects.filter(role='customer').annotate(
-        policies_count=Count('policy', distinct=True),
+        policies_count=Count('policies', distinct=True),
         total_spent=Sum('transactions__amount', filter=Q(transactions__status='completed'))
     ).order_by('-created_at')[:10]
 
@@ -169,7 +169,7 @@ class UserManagementViewSet(viewsets.ViewSet):
 
     def _get_queryset(self):
         queryset = User.objects.annotate(
-            policies_count=Count('policy', distinct=True),
+            policies_count=Count('policies', distinct=True),
             total_spent=Sum('transactions__amount', filter=Q(transactions__status='completed'))
         )
         search = self.request.query_params.get('search')
@@ -200,7 +200,7 @@ class UserManagementViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         try:
             u = User.objects.annotate(
-                policies_count=Count('policy', distinct=True),
+                policies_count=Count('policies', distinct=True),
                 total_spent=Sum('transactions__amount', filter=Q(transactions__status='completed'))
             ).get(pk=pk)
             return Response(serialize_user(u, u.policies_count, u.total_spent))
