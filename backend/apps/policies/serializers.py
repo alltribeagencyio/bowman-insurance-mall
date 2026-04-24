@@ -142,6 +142,11 @@ class PolicyCreateSerializer(serializers.ModelSerializer):
             'payment_frequency', 'policy_data', 'beneficiaries'
         ]
 
+    def validate_payment_frequency(self, value):
+        """Normalize frontend frequency values to model choices"""
+        mapping = {'annually': 'annual', 'semi-annual': 'semi_annual'}
+        return mapping.get(value, value)
+
     def validate(self, data):
         """Validate policy creation data"""
         # Ensure end_date is after start_date
