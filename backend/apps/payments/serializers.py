@@ -32,26 +32,24 @@ class TransactionSerializer(serializers.ModelSerializer):
             'policy_number',
             'amount',
             'amount_display',
-            'currency',
             'payment_method',
             'payment_method_display',
             'status',
             'status_display',
             'reference_number',
-            'gateway_reference',
-            'phone_number',
-            'description',
+            'mpesa_receipt',
+            'mpesa_phone',
+            'paystack_reference',
             'metadata',
             'failure_reason',
-            'processed_at',
+            'completed_at',
             'created_at',
             'updated_at'
         ]
         read_only_fields = [
             'id',
             'transaction_number',
-            'gateway_reference',
-            'processed_at',
+            'completed_at',
             'created_at',
             'updated_at'
         ]
@@ -62,7 +60,7 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     def get_amount_display(self, obj):
         """Get formatted amount"""
-        return f"{obj.currency} {obj.amount:,.2f}"
+        return f"KES {obj.amount:,.2f}"
 
 
 class TransactionCreateSerializer(serializers.Serializer):
@@ -155,6 +153,7 @@ class PaymentScheduleSerializer(serializers.ModelSerializer):
             'policy',
             'policy_number',
             'user_name',
+            'installment_number',
             'amount',
             'amount_display',
             'due_date',
@@ -162,16 +161,16 @@ class PaymentScheduleSerializer(serializers.ModelSerializer):
             'status_display',
             'is_overdue',
             'transaction',
-            'reminder_sent',
-            'created_at',
-            'updated_at'
+            'reminder_sent_at',
+            'paid_at',
+            'created_at'
         ]
         read_only_fields = [
             'id',
             'transaction',
-            'reminder_sent',
-            'created_at',
-            'updated_at'
+            'reminder_sent_at',
+            'paid_at',
+            'created_at'
         ]
 
     def get_user_name(self, obj):
@@ -201,25 +200,27 @@ class RefundSerializer(serializers.ModelSerializer):
         model = Refund
         fields = [
             'id',
+            'refund_number',
             'transaction',
             'transaction_number',
             'user_name',
             'amount',
             'amount_display',
             'reason',
+            'reason_description',
             'status',
             'status_display',
+            'refund_reference',
             'processed_at',
             'processed_by',
-            'created_at',
-            'updated_at'
+            'created_at'
         ]
         read_only_fields = [
             'id',
+            'refund_number',
             'processed_at',
             'processed_by',
-            'created_at',
-            'updated_at'
+            'created_at'
         ]
 
     def get_user_name(self, obj):
@@ -229,7 +230,7 @@ class RefundSerializer(serializers.ModelSerializer):
 
     def get_amount_display(self, obj):
         """Get formatted amount"""
-        return f"{obj.transaction.currency} {obj.amount:,.2f}"
+        return f"KES {obj.amount:,.2f}"
 
 
 class RefundCreateSerializer(serializers.Serializer):
