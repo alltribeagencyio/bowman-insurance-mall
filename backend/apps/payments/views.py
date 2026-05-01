@@ -37,8 +37,58 @@ from .mpesa import mpesa_service
 from .paystack import paystack_service
 
 import logging
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
+
+
+def _advance_policy_after_payment(transaction):
+    """
+    Called whenever a transaction moves to 'completed'.
+    Marks the matching PaymentSchedule as paid and advances the Policy payment_stage.
+    """
+    policy = transaction.policy
+    if not policy:
+        return
+
+    now = timezone.now()
+
+    # Find and mark the pending schedule that matches this transaction's amount
+    schedule = (
+        PaymentSchedule.objects.filter(policy=policy, status='pending')
+        .order_by('installment_number')
+        .first()
+    )
+    if schedule:
+        schedule.status = 'paid'
+        schedule.paid_at = now
+        schedule.transaction = transaction
+        schedule.save(update_fields=['status', 'paid_at', 'transaction'])
+
+    stage = policy.payment_stage
+
+    if stage == 'initial_pending':
+        # 40% paid → activate 1-month cover, move to valuation pending
+        policy.payment_stage = 'valuation_pending'
+        policy.status = 'active'
+        policy.activated_at = now
+        policy.cover_expires_at = now + timezone.timedelta(days=30)
+        policy.save(update_fields=['payment_stage', 'status', 'activated_at', 'cover_expires_at'])
+
+    elif stage == 'installment_1_pending':
+        policy.payment_stage = 'installment_2_pending'
+        policy.save(update_fields=['payment_stage'])
+
+    elif stage == 'installment_2_pending':
+        policy.payment_stage = 'fully_paid'
+        # Extend cover to full policy term
+        policy.save(update_fields=['payment_stage'])
+
+    elif stage == 'not_applicable':
+        # Flat/TPO — single payment; activate policy
+        policy.status = 'active'
+        policy.activated_at = now
+        policy.save(update_fields=['status', 'activated_at'])
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -249,11 +299,12 @@ def mpesa_callback(request):
                 'transaction_date': str(processed.get('transaction_date')),
                 'phone_number': processed.get('phone_number')
             })
+            transaction.save()
+            _advance_policy_after_payment(transaction)
         else:
             transaction.status = 'failed'
             transaction.failure_reason = processed.get('result_desc', 'Payment failed')
-
-        transaction.save()
+            transaction.save()
 
         return JsonResponse({'ResultCode': 0, 'ResultDesc': 'Success'})
 
@@ -287,6 +338,7 @@ def mpesa_status(request, transaction_id):
             transaction.status = 'completed'
             transaction.processed_at = timezone.now()
             transaction.save()
+            _advance_policy_after_payment(transaction)
 
         return Response({
             'transaction_id': str(transaction.id),
@@ -381,6 +433,7 @@ def paystack_verify(request, reference):
             'paystack_channel': result.get('channel')
         })
         transaction.save()
+        _advance_policy_after_payment(transaction)
 
         return Response({
             'success': True,

@@ -1,5 +1,16 @@
 from django.contrib import admin
-from .models import InsuranceCompany, PolicyCategory, PolicyType, Policy, PolicyReview
+from .models import InsuranceCompany, PolicyCategory, PolicyType, Policy, PolicyReview, Vehicle
+
+
+@admin.register(Vehicle)
+class VehicleAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'user', 'registration_number', 'value', 'is_active', 'created_at')
+    list_filter = ('is_active', 'body_type', 'created_at')
+    search_fields = ('make', 'model', 'registration_number', 'chassis_number', 'user__email')
+    readonly_fields = ('id', 'created_at', 'updated_at')
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
 
 
 @admin.register(InsuranceCompany)

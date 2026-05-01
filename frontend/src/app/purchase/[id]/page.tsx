@@ -38,7 +38,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth/auth-context'
-import { getPolicyTypeById } from '@/lib/api/categories'
+import { getPolicyTypeById, getQuote, type QuoteResult } from '@/lib/api/categories'
 import { purchasePolicy } from '@/lib/api/purchase'
 import { paymentsApi } from '@/lib/api/payments'
 import { apiClient } from '@/lib/api/client'
@@ -272,6 +272,8 @@ export default function PurchasePage() {
           premium: parseFloat(policyType.base_premium),
           coverage: policyType.max_coverage_amount ? parseFloat(policyType.max_coverage_amount) : 0,
           description: policyType.description,
+          rate_type: policyType.rate_type,
+          commission_rate: policyType.commission_rate ? parseFloat(policyType.commission_rate) : null,
         })
       } catch (error) {
         console.error('Error loading policy:', error)
@@ -458,14 +460,23 @@ export default function PurchasePage() {
         percentage: parseFloat(b.percentage)
       })) || []
 
+      // Use real calculated premium from quote API, or fall back to base_premium
+      const premiumAmount = formData.policy?.calculatedPremium
+        ? formData.policy.calculatedPremium
+        : product.premium.toString()
+
+      const coverageAmount = formData.policy?.coverageAmount
+        ? formData.policy.coverageAmount.toString()
+        : (formData.coverage?.amount || product.coverage || product.premium * 100).toString()
+
       // Purchase the policy
       const purchaseData = {
         policy_type: product.id,
         insurance_company: product.companyId,
         start_date: startDate.toISOString().split('T')[0],
         end_date: endDate.toISOString().split('T')[0],
-        premium_amount: product.premium.toString(),
-        coverage_amount: (formData.coverage?.amount || product.coverage).toString(),
+        premium_amount: premiumAmount.toString(),
+        coverage_amount: coverageAmount,
         payment_frequency: frequency,
         policy_data: policyData,
         beneficiaries: beneficiaries.length > 0 ? beneficiaries : undefined
@@ -534,7 +545,7 @@ export default function PurchasePage() {
         return <BeneficiariesStep data={formData.beneficiaries} onChange={(data: any) => updateFormData('beneficiaries', data)} />
 
       case 'policy':
-        return <PolicyDetailsStep data={formData.policy} onChange={(data: any) => updateFormData('policy', data)} product={product} />
+        return <PolicyDetailsStep data={formData.policy} onChange={(data: any) => updateFormData('policy', data)} product={product} vehicleData={formData.vehicle} />
 
       case 'review':
         return <ReviewStep formData={formData} product={product} steps={steps} />
@@ -1421,7 +1432,57 @@ function BeneficiariesStep({ data, onChange }: any) {
   )
 }
 
-function PolicyDetailsStep({ data, onChange, product }: any) {
+function PolicyDetailsStep({ data, onChange, product, vehicleData }: any) {
+  const [quote, setQuote] = useState<QuoteResult | null>(null)
+  const [isLoadingQuote, setIsLoadingQuote] = useState(false)
+  const [quoteError, setQuoteError] = useState<string | null>(null)
+
+  // Resolve vehicle value from vehicleData (either a saved vehicle or new vehicle form)
+  const vehicleValue: number | null = (() => {
+    if (!vehicleData) return null
+    if (vehicleData.newVehicle?.value) return parseFloat(vehicleData.newVehicle.value)
+    // selectedVehicle is just an ID — value will be null until we fetch it
+    // The review step already loaded vehicles; here we rely on the newVehicle path
+    // or the user having entered value in the vehicle step
+    return vehicleData.vehicleValue ? parseFloat(vehicleData.vehicleValue) : null
+  })()
+
+  const startDate = data?.startDate || new Date(Date.now() + 86400000).toISOString().split('T')[0]
+
+  useEffect(() => {
+    if (!product?.id) return
+    // For commission-based motor, we need a vehicle value to quote
+    const coverageAmount = product.rate_type === 'commission_percent'
+      ? vehicleValue
+      : (product.coverage || product.premium * 100)
+
+    if (!coverageAmount || coverageAmount <= 0) {
+      setQuote(null)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setIsLoadingQuote(true)
+      setQuoteError(null)
+      try {
+        const result = await getQuote(product.id, coverageAmount, startDate)
+        setQuote(result)
+        // Store calculated premium so handleSubmit can use it
+        onChange({ calculatedPremium: result.total_premium, coverageAmount })
+      } catch {
+        setQuoteError('Unable to calculate premium. Please check your details.')
+      } finally {
+        setIsLoadingQuote(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, vehicleValue, startDate])
+
+  const fmt = (n: string | number) =>
+    `KES ${Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -1435,49 +1496,65 @@ function PolicyDetailsStep({ data, onChange, product }: any) {
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="duration">Policy Duration *</Label>
-        <Select value={data?.duration || '12'} onValueChange={(value) => onChange({ duration: value })}>
-          <SelectTrigger id="duration">
-            <SelectValue placeholder="Select duration" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="12">12 Months</SelectItem>
-            <SelectItem value="6">6 Months</SelectItem>
-            <SelectItem value="3">3 Months</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Premium Breakdown */}
+      <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+        <p className="font-medium text-sm">Premium Breakdown</p>
 
-      <div className="space-y-2">
-        <Label htmlFor="paymentPlan">Payment Plan *</Label>
-        <Select value={data?.paymentPlan || 'monthly'} onValueChange={(value) => onChange({ paymentPlan: value })}>
-          <SelectTrigger id="paymentPlan">
-            <SelectValue placeholder="Select payment plan" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="monthly">Monthly</SelectItem>
-            <SelectItem value="quarterly">Quarterly (5% discount)</SelectItem>
-            <SelectItem value="annual">Annual (10% discount)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="p-4 bg-muted rounded-lg space-y-2">
-        <div className="flex justify-between">
-          <span>Base Premium:</span>
-          <span className="font-semibold">KES {product.premium.toLocaleString()}/month</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Duration:</span>
-          <span className="font-semibold">{data?.duration || 12} months</span>
-        </div>
-        <div className="border-t pt-2 flex justify-between">
-          <span className="font-bold">Total Annual Premium:</span>
-          <span className="font-bold text-primary">
-            KES {(product.premium * (parseInt(data?.duration || '12'))).toLocaleString()}
-          </span>
-        </div>
+        {isLoadingQuote ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Calculating premium...
+          </div>
+        ) : quoteError ? (
+          <p className="text-sm text-destructive">{quoteError}</p>
+        ) : quote ? (
+          <div className="space-y-2 text-sm">
+            {product.rate_type === 'commission_percent' ? (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  Vehicle Value × {Number(product.commission_rate)}%
+                </span>
+                <span>{fmt(quote.net_premium)}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Base Premium</span>
+                <span>{fmt(quote.net_premium)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-muted-foreground">
+              <span>IRA Levy (0.2%)</span>
+              <span>{fmt(quote.levies.ira_levy)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>PHF (0.25%)</span>
+              <span>{fmt(quote.levies.phf)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Training Levy (0.1%)</span>
+              <span>{fmt(quote.levies.training_levy)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Stamp Duty</span>
+              <span>{fmt(quote.levies.stamp_duty)}</span>
+            </div>
+            <div className="border-t pt-2 flex justify-between font-bold text-base">
+              <span>Annual Premium</span>
+              <span className="text-primary">{fmt(quote.total_premium)}</span>
+            </div>
+          </div>
+        ) : product.rate_type === 'commission_percent' ? (
+          <p className="text-sm text-muted-foreground py-2">
+            Enter vehicle details in the previous step to see your premium.
+          </p>
+        ) : (
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between font-bold text-base">
+              <span>Annual Premium</span>
+              <span className="text-primary">{fmt(product.premium)}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

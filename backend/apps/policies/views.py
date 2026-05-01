@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.db.models import Q, Count, Avg
 from datetime import timedelta
 
-from .models import InsuranceCompany, PolicyCategory, PolicyType, Policy, PolicyReview
+from .models import InsuranceCompany, PolicyCategory, PolicyType, Policy, PolicyReview, Vehicle
 from .serializers import (
     InsuranceCompanySerializer,
     PolicyCategorySerializer,
@@ -20,8 +20,32 @@ from .serializers import (
     PolicySerializer,
     PolicyCreateSerializer,
     PolicyReviewSerializer,
-    PolicyRenewalSerializer
+    PolicyRenewalSerializer,
+    VehicleSerializer,
 )
+
+
+class VehicleViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for customer vehicles
+    GET    /api/v1/assets/vehicles/       - list user's vehicles
+    POST   /api/v1/assets/vehicles/       - add a vehicle
+    GET    /api/v1/assets/vehicles/:id/   - get vehicle detail
+    PATCH  /api/v1/assets/vehicles/:id/   - update vehicle
+    DELETE /api/v1/assets/vehicles/:id/   - remove vehicle
+    """
+    serializer_class = VehicleSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Vehicle.objects.filter(user=self.request.user, is_active=True)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save()
 
 
 class InsuranceCompanyViewSet(viewsets.ReadOnlyModelViewSet):
@@ -110,98 +134,84 @@ class PolicyTypeViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['post'])
     def quote(self, request):
         """
-        Generate premium quote for a policy type
+        Generate premium quote for a policy type.
         POST /api/v1/policies/types/quote/
-        Body: {policy_type_id, coverage_amount, start_date, payment_frequency}
+        Body: { policy_type_id, coverage_amount, start_date }
+
+        For motor comprehensive (rate_type=commission_percent):
+          coverage_amount = vehicle market value
+          net_premium = vehicle_value * commission_rate / 100
+
+        For flat-rate policies:
+          net_premium = base_premium
         """
-        from decimal import Decimal
+        from decimal import Decimal, ROUND_HALF_UP
+        from datetime import datetime, timedelta
 
         policy_type_id = request.data.get('policy_type_id')
         coverage_amount = request.data.get('coverage_amount')
         start_date = request.data.get('start_date')
-        payment_frequency = request.data.get('payment_frequency', 'annually')
 
         if not all([policy_type_id, coverage_amount, start_date]):
-            return Response({
-                'error': 'policy_type_id, coverage_amount, and start_date are required'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'policy_type_id, coverage_amount, and start_date are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             policy_type = PolicyType.objects.select_related(
                 'insurance_company', 'category'
             ).get(id=policy_type_id, is_active=True)
         except PolicyType.DoesNotExist:
-            return Response({
-                'error': 'Policy type not found'
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Policy type not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Calculate premium based on base premium and coverage amount
-        base_premium = Decimal(str(policy_type.base_premium))
         coverage = Decimal(str(coverage_amount))
 
-        # Simple calculation: base premium + (coverage amount / 100000 * adjustment factor)
-        # This is a simplified model - in production, use actuarial formulas
-        coverage_factor = coverage / Decimal('1000000')  # Per million coverage
-        calculated_premium = base_premium * (Decimal('1') + coverage_factor)
+        # ── Net premium calculation ──────────────────────────────────────────
+        if policy_type.rate_type == 'commission_percent' and policy_type.commission_rate:
+            rate = Decimal(str(policy_type.commission_rate))
+            net_premium = (coverage * rate / Decimal('100')).quantize(
+                Decimal('0.01'), rounding=ROUND_HALF_UP
+            )
+            rate_description = f'{rate}% of insured value'
+        else:
+            net_premium = Decimal(str(policy_type.base_premium))
+            rate_description = 'Flat rate'
 
-        # Apply frequency discount
-        frequency_multipliers = {
-            'monthly': Decimal('1.05'),  # 5% more expensive for monthly
-            'quarterly': Decimal('1.02'),  # 2% more expensive
-            'semi-annual': Decimal('1.01'),  # 1% more expensive
-            'annually': Decimal('1.00')  # Base rate
-        }
-        multiplier = frequency_multipliers.get(payment_frequency, Decimal('1.00'))
-        calculated_premium = calculated_premium * multiplier
+        # ── Kenya statutory levies (IRA) ─────────────────────────────────────
+        # IRA Levy: 0.2% of net premium
+        ira_levy = (net_premium * Decimal('0.002')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        # PHF (Policyholders Compensation Fund): 0.25% of net premium
+        phf = (net_premium * Decimal('0.0025')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        # Training Levy: 0.1% of net premium
+        training_levy = (net_premium * Decimal('0.001')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        # Stamp Duty: fixed KES 40
+        stamp_duty = Decimal('40.00')
 
-        # Calculate taxes and fees (Kenya has 16% VAT on insurance)
-        taxes = calculated_premium * Decimal('0.16')
-        fees = Decimal('500')  # Processing fees
-        total_premium = calculated_premium + taxes + fees
+        total_levies = ira_levy + phf + training_levy + stamp_duty
+        total_premium = net_premium + total_levies
 
-        # Calculate per-payment amount
-        payments_per_year = {
-            'monthly': 12,
-            'quarterly': 4,
-            'semi-annual': 2,
-            'annually': 1
-        }
-        num_payments = payments_per_year.get(payment_frequency, 1)
-        per_payment = total_premium / Decimal(str(num_payments))
-
-        # Generate payment options
-        payment_options = []
-        for freq, periods in payments_per_year.items():
-            freq_mult = frequency_multipliers.get(freq, Decimal('1.00'))
-            freq_premium = base_premium * (Decimal('1') + coverage_factor) * freq_mult
-            freq_taxes = freq_premium * Decimal('0.16')
-            freq_total = freq_premium + freq_taxes + fees
-            freq_per_payment = freq_total / Decimal(str(periods))
-
-            payment_options.append({
-                'frequency': freq,
-                'amount': str(round(freq_per_payment, 2)),
-                'description': f'{periods} payment(s) per year'
-            })
-
-        # Quote valid for 30 days
-        from datetime import datetime, timedelta
         valid_until = (datetime.now() + timedelta(days=30)).isoformat()
 
         return Response({
             'policy_type': {
                 'id': str(policy_type.id),
-                'name': policy_type.name
+                'name': policy_type.name,
+                'rate_type': policy_type.rate_type,
+                'commission_rate': str(policy_type.commission_rate) if policy_type.commission_rate else None,
             },
             'coverage_amount': str(coverage),
-            'base_premium': str(base_premium),
-            'taxes': str(round(taxes, 2)),
-            'fees': str(fees),
-            'total_premium': str(round(total_premium, 2)),
-            'payment_options': payment_options,
-            'selected_frequency': payment_frequency,
-            'amount_per_payment': str(round(per_payment, 2)),
-            'valid_until': valid_until
+            'rate_description': rate_description,
+            'net_premium': str(net_premium),
+            'levies': {
+                'ira_levy': str(ira_levy),
+                'phf': str(phf),
+                'training_levy': str(training_levy),
+                'stamp_duty': str(stamp_duty),
+                'total': str(total_levies),
+            },
+            'total_premium': str(total_premium),
+            'valid_until': valid_until,
         })
 
 
@@ -370,6 +380,24 @@ class PolicyViewSet(viewsets.ModelViewSet):
             {'message': 'Policy activated successfully'},
             status=status.HTTP_200_OK
         )
+
+    @action(detail=True, methods=['post'])
+    def request_valuation_extension(self, request, pk=None):
+        """Customer requests more time for vehicle valuation."""
+        policy = self.get_object()
+        if policy.user != request.user:
+            return Response({'error': 'Not your policy'}, status=status.HTTP_403_FORBIDDEN)
+        if policy.payment_stage != 'valuation_pending':
+            return Response(
+                {'error': 'Valuation extension only applies to policies awaiting valuation'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if policy.valuation_extension_requested:
+            return Response({'error': 'Extension already requested'}, status=status.HTTP_400_BAD_REQUEST)
+
+        policy.valuation_extension_requested = True
+        policy.save(update_fields=['valuation_extension_requested'])
+        return Response({'message': 'Valuation extension request submitted. Awaiting approval.'})
 
     @action(detail=False, methods=['get'])
     def statistics(self, request):

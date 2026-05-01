@@ -2,7 +2,7 @@
 Serializers for Policies App
 """
 from rest_framework import serializers
-from .models import InsuranceCompany, PolicyCategory, PolicyType, Policy, PolicyReview
+from .models import InsuranceCompany, PolicyCategory, PolicyType, Policy, PolicyReview, Vehicle
 from apps.users.serializers import UserSerializer
 
 
@@ -54,6 +54,7 @@ class PolicyTypeSerializer(serializers.ModelSerializer):
             'id', 'name', 'category',
             'insurance_company', 'insurance_company_name',
             'description', 'base_premium',
+            'rate_type', 'commission_rate',
             'min_coverage_amount', 'max_coverage_amount',
             'features', 'exclusions',
             'status', 'is_active', 'is_featured',
@@ -79,6 +80,7 @@ class PolicyTypeListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'description', 'category_name', 'company_name',
             'company_logo', 'company_rating', 'base_premium',
+            'rate_type', 'commission_rate',
             'min_coverage_amount', 'max_coverage_amount',
             'is_featured', 'features', 'status'
         ]
@@ -93,8 +95,9 @@ class PolicyTypeDetailSerializer(serializers.ModelSerializer):
         model = PolicyType
         fields = [
             'id', 'category', 'insurance_company', 'name', 'slug',
-            'description', 'base_premium', 'coverage_details',
-            'features', 'exclusions', 'requirements', 'terms_and_conditions',
+            'description', 'base_premium',
+            'rate_type', 'commission_rate',
+            'coverage_details', 'features', 'exclusions', 'requirements', 'terms_and_conditions',
             'min_coverage_amount', 'max_coverage_amount',
             'min_age', 'max_age', 'status', 'is_active', 'is_featured',
             'created_at', 'updated_at'
@@ -122,12 +125,21 @@ class PolicySerializer(serializers.ModelSerializer):
             'status', 'start_date', 'end_date', 'premium_amount',
             'coverage_amount', 'payment_frequency', 'policy_data',
             'certificate_url', 'policy_document_url', 'beneficiaries',
-            'days_to_expiry', 'is_active', 'created_at', 'updated_at',
-            'activated_at', 'cancelled_at'
+            'days_to_expiry', 'is_active',
+            # Comprehensive motor payment flow
+            'payment_stage', 'initial_payment_amount', 'true_premium',
+            'valuation_required', 'valuation_letter_url',
+            'valuation_due_at', 'valuation_completed_at',
+            'valuation_extension_requested', 'valuation_extension_approved',
+            'cover_expires_at',
+            'created_at', 'updated_at', 'activated_at', 'cancelled_at',
         ]
         read_only_fields = [
-            'id', 'policy_number', 'user', 'created_at',
-            'updated_at', 'activated_at', 'cancelled_at'
+            'id', 'policy_number', 'user', 'payment_stage',
+            'initial_payment_amount', 'true_premium', 'valuation_required',
+            'valuation_letter_url', 'valuation_due_at', 'valuation_completed_at',
+            'valuation_extension_approved', 'cover_expires_at',
+            'created_at', 'updated_at', 'activated_at', 'cancelled_at',
         ]
 
 
@@ -172,26 +184,69 @@ class PolicyCreateSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        """Create policy with auto-generated policy number"""
+        """Create policy with auto-generated policy number and payment schedules."""
         import random
         import string
+        from decimal import Decimal, ROUND_HALF_UP
         from django.utils import timezone
+        from datetime import timedelta
+        from apps.payments.models import PaymentSchedule
+
+        now = timezone.now()
+        year = now.year
 
         # Generate unique policy number
-        year = timezone.now().year
         random_digits = ''.join(random.choices(string.digits, k=6))
         policy_number = f"POL-{year}-{random_digits}"
-
-        # Ensure uniqueness
         while Policy.objects.filter(policy_number=policy_number).exists():
             random_digits = ''.join(random.choices(string.digits, k=6))
             policy_number = f"POL-{year}-{random_digits}"
 
         validated_data['policy_number'] = policy_number
         validated_data['user'] = self.context['request'].user
-        validated_data['status'] = 'pending'  # Will be activated after payment
+        validated_data['status'] = 'pending'
 
-        return super().create(validated_data)
+        policy_type = validated_data['policy_type']
+        is_commission = policy_type.rate_type == 'commission_percent'
+
+        if is_commission:
+            # Comprehensive motor flow
+            estimated_premium = Decimal(str(validated_data['premium_amount']))
+            initial_amount = (estimated_premium * Decimal('0.40')).quantize(
+                Decimal('0.01'), rounding=ROUND_HALF_UP
+            )
+            validated_data['payment_stage'] = 'initial_pending'
+            validated_data['initial_payment_amount'] = initial_amount
+            validated_data['valuation_required'] = True
+            validated_data['valuation_due_at'] = now + timedelta(days=30)
+        else:
+            validated_data['payment_stage'] = 'not_applicable'
+
+        policy = super().create(validated_data)
+
+        # Auto-create payment schedule(s)
+        today = now.date()
+        if is_commission:
+            PaymentSchedule.objects.create(
+                policy=policy,
+                installment_number=1,
+                schedule_type='initial',
+                amount=policy.initial_payment_amount,
+                due_date=today,
+                notes='Initial payment (40% of estimated premium). 1-month comprehensive cover issued upon payment.',
+            )
+            # Installment 1 & 2 will be created by admin after uploading valuation report
+        else:
+            PaymentSchedule.objects.create(
+                policy=policy,
+                installment_number=1,
+                schedule_type='full',
+                amount=policy.premium_amount,
+                due_date=today,
+                notes='Full annual premium payment.',
+            )
+
+        return policy
 
 
 class PolicyReviewSerializer(serializers.ModelSerializer):
@@ -214,6 +269,31 @@ class PolicyReviewSerializer(serializers.ModelSerializer):
         """Validate rating is between 1 and 5"""
         if value < 1 or value > 5:
             raise serializers.ValidationError('Rating must be between 1 and 5')
+        return value
+
+
+class VehicleSerializer(serializers.ModelSerializer):
+    """Serializer for customer vehicles"""
+
+    class Meta:
+        model = Vehicle
+        fields = [
+            'id', 'make', 'model', 'year', 'registration_number',
+            'chassis_number', 'engine_number', 'body_type', 'color',
+            'value', 'logbook_url', 'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_year(self, value):
+        from django.utils import timezone
+        current_year = timezone.now().year
+        if value < 1900 or value > current_year + 1:
+            raise serializers.ValidationError(f'Year must be between 1900 and {current_year + 1}')
+        return value
+
+    def validate_value(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Vehicle value must be greater than 0')
         return value
 
 

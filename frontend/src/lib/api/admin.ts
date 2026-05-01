@@ -82,6 +82,8 @@ export interface PolicyType {
   insurance_company_name: string   // display name (read-only from backend)
   description: string
   base_premium: number
+  rate_type: 'flat' | 'commission_percent'
+  commission_rate?: number | null   // e.g. 5.0 means 5%
   min_coverage_amount?: number | null
   max_coverage_amount?: number | null
   features: string[]
@@ -342,6 +344,25 @@ export const cancelPolicy = async (policyId: string, reason: string): Promise<an
   const response = await apiClient.patch(`admin/policies/${policyId}/cancel/`, {
     cancellation_reason: reason
   })
+  return response.data
+}
+
+export const uploadValuation = async (
+  policyId: string,
+  file: File,
+  trueVehicleValue: number
+): Promise<any> => {
+  const formData = new FormData()
+  formData.append('valuation_report', file)
+  formData.append('true_vehicle_value', String(trueVehicleValue))
+  const response = await apiClient.post(`admin/policies/${policyId}/upload-valuation/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return response.data
+}
+
+export const approveValuationExtension = async (policyId: string): Promise<any> => {
+  const response = await apiClient.post(`admin/policies/${policyId}/approve-extension/`)
   return response.data
 }
 

@@ -1,19 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CreditCard, Smartphone, ArrowLeft, Shield } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { CreditCard, Smartphone, ArrowLeft, Shield, Loader2, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { paymentsApi } from '@/lib/api/payments'
 import { getErrorMessage } from '@/lib/api/errors'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { useAuth } from '@/lib/auth/auth-context'
+import { getPolicyById, getPaymentSchedules, type Policy, type PaymentSchedule } from '@/lib/api/policies'
 
 type PaymentMethod = 'mpesa' | 'card'
+
+const STAGE_LABELS: Record<string, string> = {
+  initial_pending: 'Initial Payment (40%)',
+  installment_1_pending: 'Balance — Installment 1 of 2',
+  installment_2_pending: 'Balance — Installment 2 of 2',
+  not_applicable: 'Full Premium Payment',
+}
 
 function PaymentSelectionContent() {
   const params = useParams()
@@ -21,11 +30,46 @@ function PaymentSelectionContent() {
   const { user } = useAuth()
   const policyId = params.policyId as string
 
+  const [policy, setPolicy] = useState<Policy | null>(null)
+  const [pendingSchedule, setPendingSchedule] = useState<PaymentSchedule | null>(null)
+  const [isLoadingPolicy, setIsLoadingPolicy] = useState(true)
+
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
-  const [amount, setAmount] = useState('15000')
+  const [amount, setAmount] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [pol, schedules] = await Promise.all([
+          getPolicyById(policyId),
+          getPaymentSchedules(policyId),
+        ])
+        setPolicy(pol)
+        const pending = schedules.find(s => s.status === 'pending')
+        if (pending) {
+          setPendingSchedule(pending)
+          setAmount(String(pending.amount))
+        } else {
+          // Fallback — use premium_amount
+          setAmount(String(pol.premium_amount || ''))
+        }
+      } catch {
+        toast.error('Failed to load policy details')
+      } finally {
+        setIsLoadingPolicy(false)
+      }
+    }
+    load()
+  }, [policyId])
+
+  const isComprehensive = policy?.payment_stage !== 'not_applicable'
+  const stageLabel = policy ? STAGE_LABELS[policy.payment_stage] ?? 'Payment' : 'Payment'
+
+  const fmt = (n: number | string) =>
+    `KES ${Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`
 
   const handleProceed = async () => {
     if (!selectedMethod) {
@@ -78,6 +122,14 @@ function PaymentSelectionContent() {
     }
   }
 
+  if (isLoadingPolicy) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background py-12">
       <div className="container mx-auto px-4 max-w-4xl">
@@ -92,10 +144,38 @@ function PaymentSelectionContent() {
             <Shield className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold mb-2">Complete Your Payment</h1>
-          <p className="text-muted-foreground">
-            Choose your preferred payment method
-          </p>
+          <p className="text-muted-foreground">{stageLabel}</p>
         </div>
+
+        {/* Comprehensive flow explanation */}
+        {isComprehensive && (
+          <Card className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-950/30">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex gap-3">
+                <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                <div className="text-sm space-y-1">
+                  {policy?.payment_stage === 'initial_pending' && (
+                    <>
+                      <p className="font-medium text-blue-900 dark:text-blue-100">Comprehensive Motor — Initial Payment</p>
+                      <p className="text-blue-700 dark:text-blue-300">
+                        This is 40% of your estimated annual premium. Upon payment you receive <strong>1 month comprehensive cover</strong> while your vehicle is valued. The final premium is calculated from the valuation report.
+                      </p>
+                    </>
+                  )}
+                  {(policy?.payment_stage === 'installment_1_pending' || policy?.payment_stage === 'installment_2_pending') && (
+                    <>
+                      <p className="font-medium text-blue-900 dark:text-blue-100">Balance Installment</p>
+                      <p className="text-blue-700 dark:text-blue-300">
+                        This is your balance payment based on your vehicle valuation.
+                        {policy?.true_premium && ` True annual premium: ${fmt(policy.true_premium)}.`}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Payment Details */}
@@ -104,7 +184,11 @@ function PaymentSelectionContent() {
             <Card>
               <CardHeader>
                 <CardTitle>Payment Amount</CardTitle>
-                <CardDescription>Enter the amount you want to pay</CardDescription>
+                <CardDescription>
+                  {isComprehensive
+                    ? 'Amount is fixed based on your payment schedule'
+                    : 'Full annual premium'}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -113,14 +197,15 @@ function PaymentSelectionContent() {
                     id="amount"
                     type="number"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="15000"
+                    onChange={(e) => !isComprehensive && setAmount(e.target.value)}
+                    readOnly={isComprehensive}
+                    className={isComprehensive ? 'bg-muted cursor-not-allowed font-semibold text-lg' : ''}
                     min="1"
                     disabled={isLoading}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Minimum amount: KES 100
-                  </p>
+                  {isComprehensive && pendingSchedule && (
+                    <p className="text-xs text-muted-foreground">{pendingSchedule.notes}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -20,6 +20,8 @@ urlpatterns = [
     path('policies/', views.get_admin_policies, name='admin-policies'),
     path('policies/<uuid:policy_id>/approve/', views.approve_policy, name='approve-policy'),
     path('policies/<uuid:policy_id>/cancel/', views.cancel_policy, name='cancel-policy'),
+    path('policies/<uuid:policy_id>/upload-valuation/', views.upload_valuation, name='upload-valuation'),
+    path('policies/<uuid:policy_id>/approve-extension/', views.approve_valuation_extension, name='approve-extension'),
 
     # Reports
     path('reports/sales/', views.get_sales_report, name='sales-report'),

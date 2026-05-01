@@ -33,6 +33,8 @@ export interface PolicyType {
   company_logo?: string
   company_rating?: string
   base_premium: string
+  rate_type: 'flat' | 'commission_percent'
+  commission_rate?: string | null
   min_coverage_amount?: string
   max_coverage_amount?: string
   features: string[]
@@ -65,10 +67,12 @@ export interface PolicyTypeDetail {
     is_active: boolean
   }
   base_premium: string
-  coverage_details?: any
+  rate_type: 'flat' | 'commission_percent'
+  commission_rate?: string | null
+  coverage_details?: Record<string, unknown>
   features: string[]
   exclusions: string[]
-  requirements?: any
+  requirements?: Record<string, unknown>
   terms_and_conditions?: string
   min_coverage_amount?: string
   max_coverage_amount?: string
@@ -79,6 +83,40 @@ export interface PolicyTypeDetail {
   is_featured: boolean
   created_at: string
   updated_at: string
+}
+
+export interface QuoteResult {
+  policy_type: {
+    id: string
+    name: string
+    rate_type: string
+    commission_rate: string | null
+  }
+  coverage_amount: string
+  rate_description: string
+  net_premium: string
+  levies: {
+    ira_levy: string
+    phf: string
+    training_levy: string
+    stamp_duty: string
+    total: string
+  }
+  total_premium: string
+  valid_until: string
+}
+
+export const getQuote = async (
+  policy_type_id: string,
+  coverage_amount: number,
+  start_date: string,
+): Promise<QuoteResult> => {
+  const response = await apiClient.post('/policies/types/quote/', {
+    policy_type_id,
+    coverage_amount,
+    start_date,
+  })
+  return response.data
 }
 
 export interface PolicyReview {

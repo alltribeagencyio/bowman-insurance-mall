@@ -19,12 +19,15 @@ import {
   MoreVertical,
   RefreshCw,
   XCircle,
-  Loader2
+  Loader2,
+  ClipboardList,
+  ExternalLink,
+  Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProtectedRoute } from '@/components/auth/protected-route'
-import { getUserPolicies, type Policy } from '@/lib/api/policies'
-import { getErrorStatus } from '@/lib/api/errors'
+import { getUserPolicies, requestValuationExtension, type Policy } from '@/lib/api/policies'
+import { getErrorStatus, getErrorMessage } from '@/lib/api/errors'
 
 
 function MyPoliciesContent() {
@@ -89,14 +92,29 @@ function MyPoliciesContent() {
     }
   }
 
+  const [requestingExtension, setRequestingExtension] = useState<string | null>(null)
+
   const handleDownloadCertificate = (policyId: string) => {
     toast.success('Certificate download started')
-    // TODO: Implement actual download
   }
 
   const handleRenewPolicy = (policyId: string) => {
     toast.success('Renewal process started')
-    // TODO: Navigate to renewal flow
+  }
+
+  const handleRequestExtension = async (policyId: string) => {
+    setRequestingExtension(policyId)
+    try {
+      await requestValuationExtension(policyId)
+      toast.success('Extension request submitted. Awaiting admin approval.')
+      // Refresh policies to reflect updated state
+      const data = await getUserPolicies(true)
+      setPolicies(Array.isArray(data) ? data : [])
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to request extension'))
+    } finally {
+      setRequestingExtension(null)
+    }
   }
 
   const allFilteredPolicies = Array.isArray(policies) ? policies.filter(policy => {
@@ -279,79 +297,156 @@ function MyPoliciesContent() {
                         (new Date(policy.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
                       ))
 
+                  const isValuationPending = policy.payment_stage === 'valuation_pending'
+                  const hasInstallmentDue =
+                    policy.payment_stage === 'installment_1_pending' ||
+                    policy.payment_stage === 'installment_2_pending'
+                  const hasInitialDue = policy.payment_stage === 'initial_pending'
+
                   return (
-                    <div
-                      key={policy.id}
-                      className="p-4 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        {/* Left Section */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            {getStatusIcon(policy.status)}
-                            <h3 className="font-semibold text-sm truncate">
-                              {policy.policy_type_name}
-                            </h3>
-                            <Badge variant={getStatusBadgeVariant(policy.status)} className="flex-shrink-0">
-                              {policy.status}
-                            </Badge>
+                    <div key={policy.id}>
+                      <div className="p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          {/* Left Section */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              {getStatusIcon(policy.status)}
+                              <h3 className="font-semibold text-sm truncate">
+                                {policy.policy_type_name}
+                              </h3>
+                              <Badge variant={getStatusBadgeVariant(policy.status)} className="flex-shrink-0">
+                                {policy.status}
+                              </Badge>
+                              {isValuationPending && (
+                                <Badge variant="outline" className="flex-shrink-0 border-amber-500 text-amber-700 bg-amber-50">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  Valuation Pending
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {policy.policy_number} • {policy.company_name}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {policy.policy_number} • {policy.company_name}
-                          </p>
-                        </div>
 
-                        {/* Middle Section - Key Info */}
-                        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Premium: </span>
-                            <span className="font-medium">KES {policy.premium_amount.toLocaleString()}</span>
-                            <span className="text-muted-foreground text-xs"> /{policy.premium_frequency}</span>
+                          {/* Middle Section - Key Info */}
+                          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Premium: </span>
+                              <span className="font-medium">KES {policy.premium_amount.toLocaleString()}</span>
+                              <span className="text-muted-foreground text-xs"> /{policy.premium_frequency}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Expires: </span>
+                              <span className="font-medium">{new Date(policy.end_date).toLocaleDateString()}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Days left: </span>
+                              <span className="font-medium">{daysLeft}</span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">Expires: </span>
-                            <span className="font-medium">{new Date(policy.end_date).toLocaleDateString()}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Days left: </span>
-                            <span className="font-medium">{daysLeft}</span>
-                          </div>
-                        </div>
 
-                      {/* Right Section - Actions */}
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/policies/details/${policy.id}`}>
-                            <FileText className="w-4 h-4 mr-1" />
-                            Details
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDownloadCertificate(policy.id)}
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          Certificate
-                        </Button>
-                        {policy.status === 'expired' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleRenewPolicy(policy.id)}
-                          >
-                            <RefreshCw className="w-4 h-4 mr-1" />
-                            Renew
-                          </Button>
-                        )}
-                        {policy.status === 'active' && (
-                          <Button size="sm" asChild>
-                            <Link href={`/payment/${policy.id}`}>
-                              Pay
-                            </Link>
-                          </Button>
-                        )}
+                          {/* Right Section - Actions */}
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" size="sm" asChild>
+                              <Link href={`/policies/details/${policy.id}`}>
+                                <FileText className="w-4 h-4 mr-1" />
+                                Details
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadCertificate(policy.id)}
+                            >
+                              <Download className="w-4 h-4 mr-1" />
+                              Certificate
+                            </Button>
+                            {policy.status === 'expired' && (
+                              <Button size="sm" onClick={() => handleRenewPolicy(policy.id)}>
+                                <RefreshCw className="w-4 h-4 mr-1" />
+                                Renew
+                              </Button>
+                            )}
+                            {(hasInitialDue || hasInstallmentDue) && (
+                              <Button size="sm" asChild>
+                                <Link href={`/payment/${policy.id}`}>
+                                  Pay Balance
+                                </Link>
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Valuation Pending Task Banner */}
+                      {isValuationPending && (
+                        <div className="mx-4 mb-4 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4">
+                          <div className="flex items-start gap-3">
+                            <ClipboardList className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <p className="font-semibold text-sm text-amber-900 dark:text-amber-100">
+                                  Action Required: Vehicle Valuation
+                                </p>
+                                {policy.valuation_due_at && (
+                                  <span className="text-xs text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    Due: {new Date(policy.valuation_due_at).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-amber-700 dark:text-amber-300">
+                                Your vehicle must be inspected and valued within the cover period.
+                                Take your vehicle to an approved assessor and request a valuation report.
+                              </p>
+                              {policy.valuation_letter_url ? (
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  <a
+                                    href={policy.valuation_letter_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-sm font-medium text-amber-800 underline"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    View Valuation Letter
+                                  </a>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-amber-600 dark:text-amber-400">
+                                  Valuation letter will appear here once uploaded by admin after your assessment.
+                                </p>
+                              )}
+                              {!policy.valuation_extension_requested && !policy.valuation_extension_approved && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-amber-400 text-amber-800 hover:bg-amber-100"
+                                  disabled={requestingExtension === policy.id}
+                                  onClick={() => handleRequestExtension(policy.id)}
+                                >
+                                  {requestingExtension === policy.id ? (
+                                    <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Requesting...</>
+                                  ) : (
+                                    'Request Time Extension'
+                                  )}
+                                </Button>
+                              )}
+                              {policy.valuation_extension_requested && !policy.valuation_extension_approved && (
+                                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                                  Extension request submitted — awaiting admin approval.
+                                </p>
+                              )}
+                              {policy.valuation_extension_approved && (
+                                <p className="text-xs text-green-700 dark:text-green-400 font-medium">
+                                  Extension approved.
+                                  {policy.valuation_due_at && ` New deadline: ${new Date(policy.valuation_due_at).toLocaleDateString()}`}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })}

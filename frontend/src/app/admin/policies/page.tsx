@@ -24,12 +24,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Search, Plus, Edit, Trash2, Upload, Loader2, Building2, ChevronDown, ChevronRight, CheckCircle2, XCircle, Star } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, Upload, Loader2, Building2, ChevronDown, ChevronRight, CheckCircle2, XCircle, Star, ClipboardList, Clock, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   getAllPolicyTypes, createPolicyType, updatePolicyType, deletePolicyType, bulkUploadPolicyTypes,
   getAllInsuranceCompanies, createInsuranceCompany, updateInsuranceCompany,
-  approvePolicy, cancelPolicy,
+  approvePolicy, cancelPolicy, uploadValuation, approveValuationExtension,
   type PolicyType, type InsuranceCompany
 } from '@/lib/api/admin'
 import { getErrorMessage } from '@/lib/api/errors'
@@ -45,6 +45,14 @@ interface UserPolicy {
   status: string
   start_date: string
   end_date: string
+  // Comprehensive motor payment flow
+  payment_stage?: string
+  valuation_required?: boolean
+  valuation_due_at?: string | null
+  valuation_letter_url?: string | null
+  valuation_extension_requested?: boolean
+  valuation_extension_approved?: boolean
+  true_premium?: number | null
 }
 
 const CATEGORIES = ['Motor', 'Medical', 'Life', 'Home', 'Travel', 'Business']
@@ -67,6 +75,8 @@ function PolicyTypeDialog({ open, initial, companies, onClose, onSaved }: Policy
     insurance_company: initial?.insurance_company ?? '',
     description: initial?.description ?? '',
     base_premium: Number(initial?.base_premium ?? 0),
+    rate_type: (initial?.rate_type ?? 'flat') as 'flat' | 'commission_percent',
+    commission_rate: initial?.commission_rate != null ? Number(initial.commission_rate) : ('' as number | ''),
     min_coverage_amount: Number(initial?.min_coverage_amount ?? 0),
     max_coverage_amount: Number(initial?.max_coverage_amount ?? 0),
     features: initial?.features?.length ? [...initial.features] : [''],
@@ -100,6 +110,7 @@ function PolicyTypeDialog({ open, initial, companies, onClose, onSaved }: Policy
     }
     const payload = {
       ...form,
+      commission_rate: form.commission_rate === '' ? null : form.commission_rate,
       features: form.features.filter(f => f.trim()),
       exclusions: form.exclusions.filter(e => e.trim()),
     }
@@ -162,18 +173,66 @@ function PolicyTypeDialog({ open, initial, companies, onClose, onSaved }: Policy
           </div>
 
           {/* ── Pricing & Coverage ── */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-4 rounded-md border p-4 bg-muted/30">
+            <p className="text-sm font-medium">Premium / Rate Configuration</p>
+
             <div className="space-y-2">
-              <Label>Base Premium (KES)</Label>
-              <Input type="number" value={form.base_premium} onChange={e => setForm(f => ({ ...f, base_premium: Number(e.target.value) }))} min={0} placeholder="e.g. 15000" />
+              <Label>Rate Type *</Label>
+              <Select
+                value={form.rate_type}
+                onValueChange={v => setForm(f => ({
+                  ...f,
+                  rate_type: v as 'flat' | 'commission_percent',
+                  commission_rate: '',
+                  base_premium: 0,
+                }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="flat">Flat Premium (fixed KES amount per year)</SelectItem>
+                  <SelectItem value="commission_percent">Commission % of Insured Value (motor comprehensive)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Min Coverage (KES)</Label>
-              <Input type="number" value={form.min_coverage_amount} onChange={e => setForm(f => ({ ...f, min_coverage_amount: Number(e.target.value) }))} min={0} placeholder="e.g. 500000" />
-            </div>
-            <div className="space-y-2">
-              <Label>Max Coverage (KES)</Label>
-              <Input type="number" value={form.max_coverage_amount} onChange={e => setForm(f => ({ ...f, max_coverage_amount: Number(e.target.value) }))} min={0} placeholder="e.g. 10000000" />
+
+            {form.rate_type === 'flat' ? (
+              <div className="space-y-2">
+                <Label>Annual Base Premium (KES) *</Label>
+                <Input
+                  type="number"
+                  value={form.base_premium}
+                  onChange={e => setForm(f => ({ ...f, base_premium: Number(e.target.value) }))}
+                  min={0}
+                  placeholder="e.g. 7000 for TPO"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Commission Rate (%) *</Label>
+                <Input
+                  type="number"
+                  value={form.commission_rate}
+                  onChange={e => setForm(f => ({ ...f, commission_rate: e.target.value === '' ? '' : Number(e.target.value) }))}
+                  min={0}
+                  max={100}
+                  step={0.01}
+                  placeholder="e.g. 5 for 5% of vehicle value"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Annual premium = Vehicle value × rate% + statutory levies (IRA 0.2%, PHF 0.25%, Training 0.1%, Stamp Duty KES 40)
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Min Coverage / Vehicle Value (KES)</Label>
+                <Input type="number" value={form.min_coverage_amount} onChange={e => setForm(f => ({ ...f, min_coverage_amount: Number(e.target.value) }))} min={0} placeholder="e.g. 500000" />
+              </div>
+              <div className="space-y-2">
+                <Label>Max Coverage / Vehicle Value (KES)</Label>
+                <Input type="number" value={form.max_coverage_amount} onChange={e => setForm(f => ({ ...f, max_coverage_amount: Number(e.target.value) }))} min={0} placeholder="e.g. 20000000" />
+              </div>
             </div>
           </div>
 
@@ -409,6 +468,14 @@ export default function PoliciesPage() {
   const [cancelReason, setCancelReason] = useState('')
   const [showCancelDialog, setShowCancelDialog] = useState(false)
 
+  // Valuation upload state
+  const [showValuationDialog, setShowValuationDialog] = useState(false)
+  const [valuationPolicyId, setValuationPolicyId] = useState<string | null>(null)
+  const [valuationFile, setValuationFile] = useState<File | null>(null)
+  const [trueVehicleValue, setTrueVehicleValue] = useState('')
+  const [isUploadingValuation, setIsUploadingValuation] = useState(false)
+  const [approvingExtensionId, setApprovingExtensionId] = useState<string | null>(null)
+
   // Companies state
   const [companies, setCompanies] = useState<InsuranceCompany[]>([])
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(true)
@@ -508,6 +575,42 @@ export default function PoliciesPage() {
       await loadUserPolicies()
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, 'Failed to cancel policy'))
+    }
+  }
+
+  const handleUploadValuation = async () => {
+    if (!valuationPolicyId || !valuationFile || !trueVehicleValue) return
+    const value = parseFloat(trueVehicleValue)
+    if (isNaN(value) || value <= 0) {
+      toast.error('Please enter a valid vehicle value')
+      return
+    }
+    setIsUploadingValuation(true)
+    try {
+      await uploadValuation(valuationPolicyId, valuationFile, value)
+      toast.success('Valuation report uploaded. True premium calculated and installment schedules created.')
+      setShowValuationDialog(false)
+      setValuationPolicyId(null)
+      setValuationFile(null)
+      setTrueVehicleValue('')
+      await loadUserPolicies()
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to upload valuation'))
+    } finally {
+      setIsUploadingValuation(false)
+    }
+  }
+
+  const handleApproveExtension = async (policyId: string) => {
+    setApprovingExtensionId(policyId)
+    try {
+      await approveValuationExtension(policyId)
+      toast.success('Valuation extension approved. Due date extended by 30 days.')
+      await loadUserPolicies()
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, 'Failed to approve extension'))
+    } finally {
+      setApprovingExtensionId(null)
     }
   }
 
@@ -724,46 +827,99 @@ export default function PoliciesPage() {
                         <th className="text-left p-4 font-medium">Customer</th>
                         <th className="text-left p-4 font-medium">Type</th>
                         <th className="text-left p-4 font-medium">Premium</th>
-                        <th className="text-left p-4 font-medium">Status</th>
+                        <th className="text-left p-4 font-medium">Status / Stage</th>
                         <th className="text-right p-4 font-medium">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {userPolicies.map((policy) => (
-                        <tr key={policy.id} className="border-b hover:bg-muted/50">
-                          <td className="p-4 font-mono text-sm">{policy.policy_number}</td>
-                          <td className="p-4">{policy.user.first_name} {policy.user.last_name}</td>
-                          <td className="p-4">{policy.policy_type.name}</td>
-                          <td className="p-4">{formatCurrency(policy.premium_amount)}</td>
-                          <td className="p-4">
-                            <Badge variant={policy.status === 'active' ? 'default' : 'secondary'} className="capitalize">
-                              {policy.status}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center justify-end gap-2">
-                              {policy.status === 'pending' && (
-                                <Button size="sm" variant="default" onClick={() => handleApprovePolicy(policy.id)}>
-                                  Approve
-                                </Button>
-                              )}
-                              {policy.status === 'active' && (
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => {
-                                    setCancellingPolicyId(policy.id)
-                                    setCancelReason('')
-                                    setShowCancelDialog(true)
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {userPolicies.map((policy) => {
+                        const isValuationPending = policy.payment_stage === 'valuation_pending'
+                        const hasExtensionRequest = policy.valuation_extension_requested && !policy.valuation_extension_approved
+                        return (
+                          <Fragment key={policy.id}>
+                            <tr className="border-b hover:bg-muted/50">
+                              <td className="p-4 font-mono text-sm">{policy.policy_number}</td>
+                              <td className="p-4">{policy.user.first_name} {policy.user.last_name}</td>
+                              <td className="p-4">{policy.policy_type.name}</td>
+                              <td className="p-4">{formatCurrency(policy.premium_amount)}</td>
+                              <td className="p-4">
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant={policy.status === 'active' ? 'default' : 'secondary'} className="capitalize w-fit">
+                                    {policy.status}
+                                  </Badge>
+                                  {isValuationPending && (
+                                    <Badge variant="outline" className="border-amber-400 text-amber-700 bg-amber-50 w-fit text-xs">
+                                      <Clock className="w-3 h-3 mr-1" />
+                                      Valuation Pending
+                                    </Badge>
+                                  )}
+                                  {hasExtensionRequest && (
+                                    <Badge variant="outline" className="border-blue-400 text-blue-700 bg-blue-50 w-fit text-xs">
+                                      Extension Requested
+                                    </Badge>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex items-center justify-end gap-2 flex-wrap">
+                                  {policy.status === 'pending' && (
+                                    <Button size="sm" variant="default" onClick={() => handleApprovePolicy(policy.id)}>
+                                      Approve
+                                    </Button>
+                                  )}
+                                  {isValuationPending && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-amber-400 text-amber-700 hover:bg-amber-50"
+                                      onClick={() => {
+                                        setValuationPolicyId(policy.id)
+                                        setValuationFile(null)
+                                        setTrueVehicleValue('')
+                                        setShowValuationDialog(true)
+                                      }}
+                                    >
+                                      <Upload className="w-3 h-3 mr-1" />
+                                      Upload Valuation
+                                    </Button>
+                                  )}
+                                  {hasExtensionRequest && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-blue-400 text-blue-700 hover:bg-blue-50"
+                                      disabled={approvingExtensionId === policy.id}
+                                      onClick={() => handleApproveExtension(policy.id)}
+                                    >
+                                      {approvingExtensionId === policy.id ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                                          Approve Extension
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                  {policy.status === 'active' && (
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => {
+                                        setCancellingPolicyId(policy.id)
+                                        setCancelReason('')
+                                        setShowCancelDialog(true)
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          </Fragment>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -894,6 +1050,65 @@ export default function PoliciesPage() {
             <Button variant="outline" onClick={() => setShowCancelDialog(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleCancelPolicy} disabled={!cancelReason.trim()}>
               Confirm Cancellation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Valuation Dialog */}
+      <Dialog open={showValuationDialog} onOpenChange={(o) => !o && setShowValuationDialog(false)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-amber-600" />
+              Upload Valuation Report
+            </DialogTitle>
+            <DialogDescription>
+              Upload the vehicle valuation report and enter the true assessed vehicle value.
+              The system will calculate the true premium and create installment payment schedules.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="true-vehicle-value">True Vehicle Value (KES) *</Label>
+              <Input
+                id="true-vehicle-value"
+                type="number"
+                placeholder="e.g. 5000000"
+                value={trueVehicleValue}
+                onChange={(e) => setTrueVehicleValue(e.target.value)}
+                min="1"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the assessed value from the valuation report. The true annual premium will be recalculated from this value.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="valuation-file">Valuation Report (PDF) *</Label>
+              <Input
+                id="valuation-file"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => setValuationFile(e.target.files?.[0] ?? null)}
+              />
+              {valuationFile && (
+                <p className="text-xs text-muted-foreground">Selected: {valuationFile.name}</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowValuationDialog(false)} disabled={isUploadingValuation}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUploadValuation}
+              disabled={!valuationFile || !trueVehicleValue || isUploadingValuation}
+            >
+              {isUploadingValuation ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading...</>
+              ) : (
+                <><Upload className="h-4 w-4 mr-2" />Upload &amp; Calculate Premium</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

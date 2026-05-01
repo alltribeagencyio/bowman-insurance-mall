@@ -85,11 +85,20 @@ class PaymentSchedule(models.Model):
     policy = models.ForeignKey('policies.Policy', on_delete=models.CASCADE, related_name='payment_schedules')
     transaction = models.ForeignKey(Transaction, on_delete=models.SET_NULL, null=True, blank=True, related_name='schedules')
 
+    SCHEDULE_TYPE_CHOICES = [
+        ('full', 'Full Payment'),
+        ('initial', 'Initial Payment (40%)'),
+        ('installment_1', 'Balance Installment 1 (30%)'),
+        ('installment_2', 'Balance Installment 2 (30%)'),
+    ]
+
     # Schedule details
     installment_number = models.IntegerField()
+    schedule_type = models.CharField(max_length=20, choices=SCHEDULE_TYPE_CHOICES, default='full')
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     due_date = models.DateField(db_index=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
+    notes = models.TextField(blank=True)
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)

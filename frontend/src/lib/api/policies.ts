@@ -1,5 +1,14 @@
 import { apiClient } from './client'
 
+export type PaymentStage =
+  | 'not_applicable'
+  | 'initial_pending'
+  | 'valuation_pending'
+  | 'valuation_complete'
+  | 'installment_1_pending'
+  | 'installment_2_pending'
+  | 'fully_paid'
+
 export interface Policy {
   id: string
   policy_number: string
@@ -18,16 +27,49 @@ export interface Policy {
   premium_frequency: 'monthly' | 'quarterly' | 'semi-annual' | 'annually'
   start_date: string
   end_date: string
-  policy_data?: any
+  policy_data?: Record<string, unknown>
   certificate_url?: string
   policy_document_url?: string
-  beneficiaries?: any
+  beneficiaries?: unknown[]
   days_to_expiry?: number
   is_active?: boolean
+  // Comprehensive motor payment flow
+  payment_stage: PaymentStage
+  initial_payment_amount?: number | null
+  true_premium?: number | null
+  valuation_required: boolean
+  valuation_letter_url?: string | null
+  valuation_due_at?: string | null
+  valuation_completed_at?: string | null
+  valuation_extension_requested: boolean
+  valuation_extension_approved: boolean
+  cover_expires_at?: string | null
   created_at: string
   updated_at: string
   activated_at?: string
   cancelled_at?: string
+}
+
+export interface PaymentSchedule {
+  id: string
+  installment_number: number
+  schedule_type: 'full' | 'initial' | 'installment_1' | 'installment_2'
+  amount: number
+  due_date: string
+  status: 'pending' | 'paid' | 'overdue' | 'cancelled'
+  notes: string
+  paid_at?: string | null
+}
+
+export const getPaymentSchedules = async (policyId: string): Promise<PaymentSchedule[]> => {
+  const response = await apiClient.get('/payments/payment-schedules/', {
+    params: { policy: policyId },
+  })
+  return response.data.results ?? response.data
+}
+
+export const requestValuationExtension = async (policyId: string): Promise<void> => {
+  await apiClient.post(`/policies/my-policies/${policyId}/request_valuation_extension/`)
 }
 
 export interface PolicyDetail extends Policy {

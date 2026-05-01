@@ -28,10 +28,12 @@ import {
   Wallet,
   Award,
   Star,
-  Loader2
+  Loader2,
+  ClipboardList
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getDashboardData } from '@/lib/api/dashboard'
+import { getUserPolicies, type Policy } from '@/lib/api/policies'
 import { getErrorStatus } from '@/lib/api/errors'
 
 interface DashboardData {
@@ -233,6 +235,7 @@ const mockDashboardData = {
 function DashboardContent() {
   const { user } = useAuth()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [valuationPendingPolicies, setValuationPendingPolicies] = useState<Policy[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Fetch dashboard data on mount
@@ -240,8 +243,16 @@ function DashboardContent() {
     const fetchData = async () => {
       try {
         setIsLoading(true)
-        const data = await getDashboardData()
+        const [data, policies] = await Promise.all([
+          getDashboardData(),
+          getUserPolicies().catch(() => []),
+        ])
         setDashboardData(data)
+        setValuationPendingPolicies(
+          (Array.isArray(policies) ? policies : []).filter(
+            (p: Policy) => p.payment_stage === 'valuation_pending'
+          )
+        )
       } catch (error: unknown) {
         console.error('Error fetching dashboard data:', error)
 
@@ -457,8 +468,32 @@ function DashboardContent() {
         {/* Main Column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Alerts Section */}
-          {(stats.payments.overdueCount > 0 || stats.policies.expiringSoon > 0 || !user?.is_verified) && (
+          {(valuationPendingPolicies.length > 0 || stats.payments.overdueCount > 0 || stats.policies.expiringSoon > 0 || !user?.is_verified) && (
             <div className="space-y-4">
+              {valuationPendingPolicies.length > 0 && (
+                <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950">
+                  <CardHeader>
+                    <div className="flex items-start gap-4">
+                      <ClipboardList className="h-6 w-6 text-amber-600 mt-1 shrink-0" />
+                      <div className="flex-1">
+                        <CardTitle className="text-amber-900 dark:text-amber-100">
+                          Vehicle Valuation Required
+                        </CardTitle>
+                        <CardDescription className="mt-2 text-amber-800 dark:text-amber-200">
+                          {valuationPendingPolicies.length === 1
+                            ? `Your policy "${valuationPendingPolicies[0].policy_type_name}" requires a vehicle valuation within the 1-month cover period.`
+                            : `${valuationPendingPolicies.length} of your policies require vehicle valuations.`}
+                        </CardDescription>
+                      </div>
+                      <Button variant="outline" className="border-amber-400 text-amber-800 hover:bg-amber-100 shrink-0" asChild>
+                        <Link href="/dashboard/my-policies">
+                          View Tasks
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardHeader>
+                </Card>
+              )}
               {stats.payments.overdueCount > 0 && (
                 <Card className="border-red-200 bg-red-50 dark:bg-red-950">
                   <CardHeader>

@@ -12,6 +12,7 @@ from apps.policies.models import Policy, PolicyType, InsuranceCompany
 from apps.claims.models import Claim
 from apps.payments.models import Transaction
 from apps.policies.serializers import PolicyTypeSerializer, InsuranceCompanySerializer
+from apps.payments.models import PaymentSchedule
 
 
 class IsAdmin(IsAuthenticated):
@@ -451,6 +452,121 @@ def cancel_policy(request, policy_id):
         return Response({'message': 'Policy cancelled'})
     except Policy.DoesNotExist:
         return Response({'error': 'Policy not found'}, status=404)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def upload_valuation(request, policy_id):
+    """
+    Admin uploads vehicle valuation report and sets the true vehicle value.
+    POST /api/v1/admin/policies/{id}/upload-valuation/
+    Body: { valuation_letter_url, true_vehicle_value }
+    After upload:
+    - true_premium is recalculated from true_vehicle_value × commission_rate
+    - balance = true_premium − initial_payment (split into 2 equal installments)
+    - policy stage advances to valuation_complete → installment_1_pending
+    """
+    from decimal import Decimal, ROUND_HALF_UP
+    from datetime import timedelta
+
+    try:
+        policy = Policy.objects.select_related('policy_type').get(pk=policy_id)
+    except Policy.DoesNotExist:
+        return Response({'error': 'Policy not found'}, status=404)
+
+    if policy.payment_stage not in ('valuation_pending', 'valuation_complete'):
+        return Response(
+            {'error': 'Policy is not in a valuation stage'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    valuation_url = request.data.get('valuation_letter_url', '').strip()
+    true_vehicle_value = request.data.get('true_vehicle_value')
+
+    if not valuation_url or not true_vehicle_value:
+        return Response(
+            {'error': 'valuation_letter_url and true_vehicle_value are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    pt = policy.policy_type
+    if not pt.commission_rate:
+        return Response({'error': 'Policy type has no commission rate configured'}, status=400)
+
+    vehicle_value = Decimal(str(true_vehicle_value))
+    commission = Decimal(str(pt.commission_rate))
+
+    # Recalculate true premium with levies
+    net_premium = (vehicle_value * commission / Decimal('100')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    ira = (net_premium * Decimal('0.002')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    phf = (net_premium * Decimal('0.0025')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    training = (net_premium * Decimal('0.001')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    stamp = Decimal('40.00')
+    true_premium = net_premium + ira + phf + training + stamp
+
+    initial_paid = policy.initial_payment_amount or Decimal('0')
+    balance = max(true_premium - initial_paid, Decimal('0'))
+    installment = (balance / Decimal('2')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+    now = timezone.now()
+    today = now.date()
+
+    # Create the two balance installment schedules (cancel any existing)
+    PaymentSchedule.objects.filter(
+        policy=policy,
+        schedule_type__in=['installment_1', 'installment_2'],
+    ).delete()
+
+    PaymentSchedule.objects.create(
+        policy=policy,
+        installment_number=2,
+        schedule_type='installment_1',
+        amount=installment,
+        due_date=today + timedelta(days=30),
+        notes=f'Balance installment 1 of 2. True premium: KES {true_premium}',
+    )
+    PaymentSchedule.objects.create(
+        policy=policy,
+        installment_number=3,
+        schedule_type='installment_2',
+        amount=balance - installment,  # handles rounding
+        due_date=today + timedelta(days=60),
+        notes='Balance installment 2 of 2.',
+    )
+
+    policy.valuation_letter_url = valuation_url
+    policy.true_premium = true_premium
+    policy.valuation_completed_at = now
+    policy.payment_stage = 'installment_1_pending'
+    policy.save(update_fields=[
+        'valuation_letter_url', 'true_premium', 'valuation_completed_at', 'payment_stage'
+    ])
+
+    return Response({
+        'message': 'Valuation uploaded successfully',
+        'true_premium': str(true_premium),
+        'balance': str(balance),
+        'installment_amount': str(installment),
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def approve_valuation_extension(request, policy_id):
+    """Admin approves a customer's valuation extension request."""
+    from datetime import timedelta
+    try:
+        policy = Policy.objects.get(pk=policy_id)
+    except Policy.DoesNotExist:
+        return Response({'error': 'Policy not found'}, status=404)
+
+    if not policy.valuation_extension_requested:
+        return Response({'error': 'No extension request pending'}, status=400)
+
+    policy.valuation_extension_approved = True
+    policy.valuation_due_at = timezone.now() + timedelta(days=30)
+    policy.save(update_fields=['valuation_extension_approved', 'valuation_due_at'])
+    return Response({'message': 'Valuation extension approved — 30 additional days granted'})
 
 
 # ==================== Reports ====================

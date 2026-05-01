@@ -94,6 +94,20 @@ class PolicyType(models.Model):
     min_age = models.IntegerField(null=True, blank=True)
     max_age = models.IntegerField(null=True, blank=True)
 
+    # Rate / pricing configuration
+    RATE_TYPE_CHOICES = [
+        ('flat', 'Flat Premium'),
+        ('commission_percent', 'Commission % of Insured Value'),
+    ]
+    rate_type = models.CharField(
+        max_length=20, choices=RATE_TYPE_CHOICES, default='flat',
+        help_text='flat: use base_premium directly; commission_percent: rate = commission_rate % of vehicle/asset value'
+    )
+    commission_rate = models.DecimalField(
+        max_digits=6, decimal_places=4, null=True, blank=True,
+        help_text='Rate percentage for commission-based pricing, e.g. 5.0000 means 5%'
+    )
+
     # Status and visibility
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', db_index=True, help_text='Draft policies are hidden from frontend')
     is_active = models.BooleanField(default=True, db_index=True)
@@ -168,6 +182,39 @@ class Policy(models.Model):
     # Beneficiaries (for life insurance, etc.)
     beneficiaries = models.JSONField(default=list, blank=True)
 
+    # ── Comprehensive motor payment flow ─────────────────────────────────────
+    PAYMENT_STAGE_CHOICES = [
+        ('not_applicable', 'Not Applicable'),       # flat/TPO — single payment
+        ('initial_pending', 'Initial Payment Pending'),   # awaiting 40% deposit
+        ('valuation_pending', 'Vehicle Valuation Pending'),  # paid 40%, needs valuation
+        ('valuation_complete', 'Valuation Complete'),    # admin uploaded report
+        ('installment_1_pending', 'Installment 1 Pending'),
+        ('installment_2_pending', 'Installment 2 Pending'),
+        ('fully_paid', 'Fully Paid'),
+    ]
+    payment_stage = models.CharField(
+        max_length=30, choices=PAYMENT_STAGE_CHOICES, default='not_applicable', db_index=True
+    )
+    initial_payment_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text='40% of estimated premium — due at purchase for comprehensive'
+    )
+    true_premium = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text='Actual premium after vehicle valuation'
+    )
+    valuation_required = models.BooleanField(default=False)
+    valuation_letter_url = models.URLField(blank=True, null=True, help_text='Valuation report uploaded by admin')
+    valuation_due_at = models.DateTimeField(null=True, blank=True, help_text='1 month from policy start')
+    valuation_completed_at = models.DateTimeField(null=True, blank=True)
+    valuation_extension_requested = models.BooleanField(default=False)
+    valuation_extension_approved = models.BooleanField(default=False)
+    cover_expires_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Expiry of the 1-month comprehensive cover given after initial payment'
+    )
+    # ─────────────────────────────────────────────────────────────────────────
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -202,6 +249,48 @@ class Policy(models.Model):
             delta = self.end_date - timezone.now().date()
             return delta.days
         return None
+
+
+class Vehicle(models.Model):
+    """Customer-owned vehicles used for motor insurance"""
+
+    BODY_TYPE_CHOICES = [
+        ('sedan', 'Sedan'),
+        ('suv', 'SUV'),
+        ('pickup', 'Pick-up / Double Cab'),
+        ('van', 'Van / Minivan'),
+        ('bus', 'Bus / Minibus'),
+        ('truck', 'Truck'),
+        ('motorcycle', 'Motorcycle'),
+        ('other', 'Other'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='vehicles'
+    )
+    make = models.CharField(max_length=100)
+    model = models.CharField(max_length=100)
+    year = models.IntegerField(help_text='Year of manufacture')
+    registration_number = models.CharField(max_length=20)
+    chassis_number = models.CharField(max_length=50, blank=True)
+    engine_number = models.CharField(max_length=50, blank=True)
+    body_type = models.CharField(max_length=20, choices=BODY_TYPE_CHOICES, default='sedan')
+    color = models.CharField(max_length=50, blank=True)
+    value = models.DecimalField(
+        max_digits=15, decimal_places=2, help_text='Current market value in KES'
+    )
+    logbook_url = models.URLField(blank=True, null=True, help_text='S3 URL of uploaded logbook')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'vehicles'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.year} {self.make} {self.model} ({self.registration_number})"
 
 
 class PolicyReview(models.Model):
