@@ -849,7 +849,7 @@ function VehicleStep({ data, onChange }: any) {
                       name="vehicle"
                       value={vehicle.id}
                       checked={data?.selectedVehicle === vehicle.id}
-                      onChange={(e) => onChange({ selectedVehicle: e.target.value, newVehicle: null })}
+                      onChange={() => onChange({ selectedVehicle: vehicle.id, newVehicle: null, vehicleValue: vehicle.details.value })}
                       className="w-4 h-4"
                     />
                     <Car className="h-5 w-5 text-primary" />
