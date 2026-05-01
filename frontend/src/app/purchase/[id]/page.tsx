@@ -257,6 +257,8 @@ export default function PurchasePage() {
   const [formData, setFormData] = useState<any>({})
   const [product, setProduct] = useState<any>(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     // Load product from API first (available to everyone)
@@ -274,6 +276,10 @@ export default function PurchasePage() {
           description: policyType.description,
           rate_type: policyType.rate_type,
           commission_rate: policyType.commission_rate ? parseFloat(policyType.commission_rate) : null,
+          motor_cover_type: policyType.motor_cover_type || null,
+          tpo_max_installments: policyType.tpo_max_installments || 1,
+          tpo_installment_1_amount: policyType.tpo_installment_1_amount ? parseFloat(policyType.tpo_installment_1_amount) : null,
+          tpo_installment_2_amount: policyType.tpo_installment_2_amount ? parseFloat(policyType.tpo_installment_2_amount) : null,
         })
       } catch (error) {
         console.error('Error loading policy:', error)
@@ -443,33 +449,30 @@ export default function PurchasePage() {
     return true
   }
 
-  const handleSubmit = async () => {
-    // Check authentication before submitting
+  const handleSubmit = () => {
     if (!isAuthenticated) {
       setShowAuthModal(true)
       return
     }
+    // Validate last step before showing confirmation
+    if (!validateStep(steps[currentStep].id)) return
+    setShowConfirmDialog(true)
+  }
 
-    try{
-      // Calculate dates
+  const handleConfirmedSubmit = async () => {
+    setIsSubmitting(true)
+    try {
+      // Start date: tomorrow
       const startDate = new Date()
-      startDate.setDate(startDate.getDate() + 1) // Start tomorrow
+      startDate.setDate(startDate.getDate() + 1)
+
+      // End date: 1 year later (backend overrides to 1 month for TOR)
       const endDate = new Date(startDate)
+      endDate.setFullYear(endDate.getFullYear() + 1)
 
-      // Set end date based on payment frequency
-      const frequency = formData.payment?.frequency || 'annually'
-      if (frequency === 'annually') {
-        endDate.setFullYear(endDate.getFullYear() + 1)
-      } else if (frequency === 'quarterly') {
-        endDate.setMonth(endDate.getMonth() + 3)
-      } else {
-        endDate.setMonth(endDate.getMonth() + 1)
-      }
-
-      // Prepare policy data based on category
+      // Prepare vehicle data
       let policyData: any = {}
       if (formData.vehicle) {
-        // Vehicle data comes from either a saved vehicle or a newly-entered vehicle
         const vd = formData.vehicle.newVehicle || formData.vehicle.selectedVehicleDetails
         if (vd) {
           policyData = {
@@ -487,7 +490,6 @@ export default function PurchasePage() {
         }
       }
 
-      // Prepare beneficiaries if any
       const beneficiaries = formData.beneficiaries?.map((b: any) => ({
         name: b.name,
         relationship: b.relationship,
@@ -495,16 +497,11 @@ export default function PurchasePage() {
         percentage: parseFloat(b.percentage)
       })) || []
 
-      // Use real calculated premium from quote API, or fall back to base_premium
-      const premiumAmount = formData.policy?.calculatedPremium
-        ? formData.policy.calculatedPremium
-        : product.premium.toString()
-
+      const premiumAmount = formData.policy?.calculatedPremium || product.premium.toString()
       const coverageAmount = formData.policy?.coverageAmount
         ? formData.policy.coverageAmount.toString()
-        : (formData.coverage?.amount || product.coverage || product.premium * 100).toString()
+        : (product.coverage || product.premium * 100).toString()
 
-      // Purchase the policy
       const purchaseData = {
         policy_type: product.id,
         insurance_company: product.companyId,
@@ -512,35 +509,32 @@ export default function PurchasePage() {
         end_date: endDate.toISOString().split('T')[0],
         premium_amount: premiumAmount.toString(),
         coverage_amount: coverageAmount,
-        payment_frequency: frequency,
+        payment_frequency: 'annually',
         policy_data: policyData,
-        beneficiaries: beneficiaries.length > 0 ? beneficiaries : undefined
+        beneficiaries: beneficiaries.length > 0 ? beneficiaries : undefined,
+        installment_choice: formData.policy?.installmentChoice || 1,
       }
 
-      toast.loading('Creating your policy...')
       const policy = await purchasePolicy(purchaseData)
 
-      toast.success('Policy created! Redirecting to payment...')
-
-      // Clear saved form data
       sessionStorage.removeItem('purchase_form_data')
       sessionStorage.removeItem('purchase_policy_id')
+      setShowConfirmDialog(false)
 
-      // Redirect to payment page
-      setTimeout(() => {
-        router.push(`/payment/${policy.id}`)
-      }, 1000)
+      toast.success('Policy created! Redirecting to payment...')
+      setTimeout(() => router.push(`/payment/${policy.id}`), 800)
 
     } catch (error: unknown) {
       console.error('Error purchasing policy:', error)
-
-      // Handle specific error cases
+      setShowConfirmDialog(false)
       if (getErrorStatus(error) === 401) {
         toast.error('Your session has expired. Please login again.')
         setShowAuthModal(true)
       } else {
         toast.error(getErrorMessage(error, 'Failed to purchase policy. Please try again.'))
       }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -597,11 +591,61 @@ export default function PurchasePage() {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        onSuccess={() => {
-          // Form data is already filled, user can continue
-          toast.success('You can now continue with your purchase!')
-        }}
+        onSuccess={() => toast.success('You can now continue with your purchase!')}
       />
+
+      {/* Purchase Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Your Application</DialogTitle>
+            <DialogDescription>
+              Please confirm that you want to submit this insurance application.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Policy</span>
+              <span className="font-medium">{product?.name}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Insurer</span>
+              <span className="font-medium">{product?.company}</span>
+            </div>
+            {formData.policy?.calculatedPremium && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Annual Premium</span>
+                <span className="font-semibold text-primary">
+                  KES {Number(formData.policy.calculatedPremium).toLocaleString()}
+                </span>
+              </div>
+            )}
+            {formData.policy?.installmentChoice === 2 && product?.tpo_installment_1_amount && (
+              <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-sm space-y-1">
+                <p className="font-medium text-blue-800">Installment Plan</p>
+                <p className="text-blue-700">1st payment: KES {Number(product.tpo_installment_1_amount).toLocaleString()} — due today</p>
+                <p className="text-blue-700">2nd payment: KES {Number(product.tpo_installment_2_amount || (Number(formData.policy.calculatedPremium) - product.tpo_installment_1_amount)).toLocaleString()} — due in ~90 days</p>
+              </div>
+            )}
+            {product?.motor_cover_type === 'tor' && (
+              <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+                <strong>Time on Risk (TOR)</strong> — this is a 1-month TPO cover and cannot be extended or renewed.
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground pt-2">
+              By confirming, you agree to proceed to payment. Your policy will be active after payment is confirmed.
+            </p>
+          </div>
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={isSubmitting}>
+              Go Back
+            </Button>
+            <Button onClick={handleConfirmedSubmit} disabled={isSubmitting}>
+              {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</> : 'Confirm & Submit'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Header */}
       <div className="border-b bg-white dark:bg-gray-900">
@@ -646,7 +690,12 @@ export default function PurchasePage() {
                     <Shield className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold">{product.name}</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-bold">{product.name}</h2>
+                      {product.motor_cover_type === 'tor' && (
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-800">TOR · 1 Month</Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">{product.company}</p>
                   </div>
                 </div>
@@ -1538,6 +1587,16 @@ function PolicyDetailsStep({ data, onChange, product, vehicleData }: any) {
   const fmt = (n: string | number) =>
     `KES ${Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`
 
+  // TPO 2-installment option
+  const canChoose2Installments =
+    product.motor_cover_type === 'tpo' &&
+    product.tpo_max_installments >= 2 &&
+    product.tpo_installment_1_amount != null
+
+  const installmentChoice = data?.installmentChoice || 1
+  const totalPremium = quote ? parseFloat(quote.total_premium) : product.premium
+  const inst2Amount = product.tpo_installment_2_amount || (totalPremium - (product.tpo_installment_1_amount || 0))
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -1566,9 +1625,7 @@ function PolicyDetailsStep({ data, onChange, product, vehicleData }: any) {
           <div className="space-y-2 text-sm">
             {product.rate_type === 'commission_percent' ? (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  Vehicle Value × {Number(product.commission_rate)}%
-                </span>
+                <span className="text-muted-foreground">Vehicle Value × {Number(product.commission_rate)}%</span>
                 <span>{fmt(quote.net_premium)}</span>
               </div>
             ) : (
@@ -1584,20 +1641,16 @@ function PolicyDetailsStep({ data, onChange, product, vehicleData }: any) {
               </div>
             )}
             <div className="flex justify-between text-muted-foreground">
-              <span>IRA Levy (0.2%)</span>
-              <span>{fmt(quote.levies.ira_levy)}</span>
+              <span>IRA Levy (0.2%)</span><span>{fmt(quote.levies.ira_levy)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>PHF (0.25%)</span>
-              <span>{fmt(quote.levies.phf)}</span>
+              <span>PHF (0.25%)</span><span>{fmt(quote.levies.phf)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Training Levy (0.1%)</span>
-              <span>{fmt(quote.levies.training_levy)}</span>
+              <span>Training Levy (0.1%)</span><span>{fmt(quote.levies.training_levy)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Stamp Duty</span>
-              <span>{fmt(quote.levies.stamp_duty)}</span>
+              <span>Stamp Duty</span><span>{fmt(quote.levies.stamp_duty)}</span>
             </div>
             <div className="border-t pt-2 flex justify-between font-bold text-base">
               <span>Annual Premium</span>
@@ -1617,6 +1670,43 @@ function PolicyDetailsStep({ data, onChange, product, vehicleData }: any) {
           </div>
         )}
       </div>
+
+      {/* TPO Installment Option */}
+      {canChoose2Installments && (
+        <div className="rounded-lg border p-4 space-y-3">
+          <p className="font-medium text-sm">Payment Plan</p>
+          <div className="space-y-2">
+            <label className={`flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${installmentChoice === 1 ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>
+              <input
+                type="radio"
+                name="installment"
+                checked={installmentChoice === 1}
+                onChange={() => onChange({ installmentChoice: 1 })}
+                className="mt-0.5"
+              />
+              <div>
+                <p className="font-medium">Full Payment</p>
+                <p className="text-sm text-muted-foreground">Pay {fmt(totalPremium)} in full — cover starts immediately</p>
+              </div>
+            </label>
+            <label className={`flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${installmentChoice === 2 ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>
+              <input
+                type="radio"
+                name="installment"
+                checked={installmentChoice === 2}
+                onChange={() => onChange({ installmentChoice: 2 })}
+                className="mt-0.5"
+              />
+              <div>
+                <p className="font-medium">2 Installments</p>
+                <p className="text-sm text-muted-foreground">
+                  1st: {fmt(product.tpo_installment_1_amount)} now &nbsp;·&nbsp; 2nd: {fmt(inst2Amount)} in ~90 days
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1746,6 +1836,64 @@ function ReviewStep({ formData, product, steps }: any) {
           </CardContent>
         </Card>
       )}
+
+      {/* Payment Schedule */}
+      <div className="rounded-lg border p-4 space-y-3">
+        <p className="font-semibold">Payment Schedule</p>
+        {(() => {
+          const total = Number(formData.policy?.calculatedPremium || product.premium)
+          const isComprehensive = product.rate_type === 'commission_percent'
+          const isTor = product.motor_cover_type === 'tor'
+          const use2 = formData.policy?.installmentChoice === 2 && product.tpo_max_installments >= 2
+
+          if (isComprehensive) {
+            const initial = (total * 0.4).toFixed(2)
+            const balance = (total * 0.6).toFixed(2)
+            return (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between p-2 bg-primary/5 rounded">
+                  <span className="font-medium">Initial payment (40%) — due today</span>
+                  <span className="font-bold">KES {Number(initial).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between p-2 bg-muted rounded text-muted-foreground">
+                  <span>Balance (60%) — after vehicle valuation</span>
+                  <span>KES {Number(balance).toLocaleString()}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Cover is issued for 1 month after initial payment. Full cover starts after valuation and balance payment.</p>
+              </div>
+            )
+          }
+
+          if (use2 && product.tpo_installment_1_amount) {
+            const inst1 = product.tpo_installment_1_amount
+            const inst2 = product.tpo_installment_2_amount || (total - inst1)
+            return (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between p-2 bg-primary/5 rounded">
+                  <span className="font-medium">1st Installment — due today</span>
+                  <span className="font-bold">KES {Number(inst1).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between p-2 bg-muted rounded">
+                  <span>2nd Installment — due in ~90 days</span>
+                  <span>KES {Number(inst2).toLocaleString()}</span>
+                </div>
+              </div>
+            )
+          }
+
+          return (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between p-2 bg-primary/5 rounded">
+                <span className="font-medium">{isTor ? '1-month TPO Premium — due today' : 'Annual Premium — due today'}</span>
+                <span className="font-bold">KES {total.toLocaleString()}</span>
+              </div>
+              {isTor && (
+                <p className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1">TOR cover cannot be extended or renewed.</p>
+              )}
+            </div>
+          )
+        })()}
+      </div>
 
       <div className="p-4 border-2 border-primary rounded-lg bg-primary/5">
         <div className="flex items-center justify-between mb-2">

@@ -87,6 +87,10 @@ export interface PolicyType {
   min_premium?: number | null
   min_coverage_amount?: number | null
   max_coverage_amount?: number | null
+  motor_cover_type?: 'tpo' | 'comprehensive' | 'tor' | null
+  tpo_max_installments?: number
+  tpo_installment_1_amount?: number | null
+  tpo_installment_2_amount?: number | null
   features: string[]
   exclusions: string[]
   status: 'draft' | 'published' | 'delisted'

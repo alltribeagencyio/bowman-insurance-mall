@@ -429,7 +429,21 @@ def get_admin_policies(request):
     if category_filter:
         policies = policies.filter(policy_type__category__name__icontains=category_filter)
 
-    policies = policies[:200]
+    policies = list(policies[:200])
+    policy_ids = [p.id for p in policies]
+    schedules_qs = PaymentSchedule.objects.filter(policy_id__in=policy_ids).order_by('installment_number')
+    schedules_by_policy: dict = {}
+    for s in schedules_qs:
+        schedules_by_policy.setdefault(str(s.policy_id), []).append({
+            'id': str(s.id),
+            'installment_number': s.installment_number,
+            'schedule_type': s.schedule_type,
+            'amount': float(s.amount),
+            'due_date': str(s.due_date),
+            'status': s.status,
+            'notes': s.notes,
+            'paid_at': s.paid_at.isoformat() if s.paid_at else None,
+        })
 
     data = [{
         'id': str(p.id),
@@ -443,16 +457,17 @@ def get_admin_policies(request):
         'policy_type': {
             'name': p.policy_type.name if p.policy_type else '',
             'category': p.policy_type.category.name if p.policy_type and p.policy_type.category else '',
+            'motor_cover_type': p.policy_type.motor_cover_type if p.policy_type else None,
         },
         'insurance_company': p.insurance_company.name if p.insurance_company else '',
         'premium_amount': float(p.premium_amount),
         'coverage_amount': float(p.coverage_amount) if p.coverage_amount else None,
-        'payment_frequency': p.premium_frequency,
+        'payment_frequency': p.payment_frequency,
         'status': p.status,
         'start_date': str(p.start_date) if p.start_date else None,
         'end_date': str(p.end_date) if p.end_date else None,
         'created_at': p.created_at.isoformat(),
-        # Motor comprehensive payment flow
+        # Motor payment flow
         'payment_stage': p.payment_stage,
         'initial_payment_amount': float(p.initial_payment_amount) if p.initial_payment_amount else None,
         'true_premium': float(p.true_premium) if p.true_premium else None,
@@ -463,8 +478,8 @@ def get_admin_policies(request):
         'valuation_extension_requested': p.valuation_extension_requested,
         'valuation_extension_approved': p.valuation_extension_approved,
         'cover_expires_at': p.cover_expires_at.isoformat() if p.cover_expires_at else None,
-        # Vehicle details from policy_data JSON
         'vehicle_details': p.policy_data.get('vehicle_details') if p.policy_data else None,
+        'payment_schedules': schedules_by_policy.get(str(p.id), []),
     } for p in policies]
 
     return Response({'results': data, 'count': len(data)})

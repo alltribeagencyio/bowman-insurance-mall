@@ -9,6 +9,8 @@ export type PaymentStage =
   | 'installment_2_pending'
   | 'fully_paid'
 
+export type MotorCoverType = 'tpo' | 'comprehensive' | 'tor' | null
+
 export interface Policy {
   id: string
   policy_number: string
@@ -21,6 +23,8 @@ export interface Policy {
   company_name: string
   company_logo?: string
   category_name: string
+  motor_cover_type?: MotorCoverType
+  tpo_max_installments?: number
   status: 'active' | 'pending' | 'expired' | 'cancelled'
   coverage_amount: number
   premium_amount: number
@@ -33,7 +37,7 @@ export interface Policy {
   beneficiaries?: unknown[]
   days_to_expiry?: number
   is_active?: boolean
-  // Comprehensive motor payment flow
+  // Motor payment flow
   payment_stage: PaymentStage
   initial_payment_amount?: number | null
   true_premium?: number | null
@@ -44,6 +48,7 @@ export interface Policy {
   valuation_extension_requested: boolean
   valuation_extension_approved: boolean
   cover_expires_at?: string | null
+  payment_schedules?: PaymentSchedule[]
   created_at: string
   updated_at: string
   activated_at?: string

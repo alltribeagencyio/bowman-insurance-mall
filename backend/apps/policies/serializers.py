@@ -57,6 +57,8 @@ class PolicyTypeSerializer(serializers.ModelSerializer):
             'rate_type', 'commission_rate', 'min_premium',
             'min_coverage_amount', 'max_coverage_amount',
             'features', 'exclusions',
+            'motor_cover_type', 'tpo_max_installments',
+            'tpo_installment_1_amount', 'tpo_installment_2_amount',
             'status', 'is_active', 'is_featured',
             'created_at',
         ]
@@ -82,6 +84,8 @@ class PolicyTypeListSerializer(serializers.ModelSerializer):
             'company_logo', 'company_rating', 'base_premium',
             'rate_type', 'commission_rate', 'min_premium',
             'min_coverage_amount', 'max_coverage_amount',
+            'motor_cover_type', 'tpo_max_installments',
+            'tpo_installment_1_amount', 'tpo_installment_2_amount',
             'is_featured', 'features', 'status'
         ]
 
@@ -99,6 +103,8 @@ class PolicyTypeDetailSerializer(serializers.ModelSerializer):
             'rate_type', 'commission_rate', 'min_premium',
             'coverage_details', 'features', 'exclusions', 'requirements', 'terms_and_conditions',
             'min_coverage_amount', 'max_coverage_amount',
+            'motor_cover_type', 'tpo_max_installments',
+            'tpo_installment_1_amount', 'tpo_installment_2_amount',
             'min_age', 'max_age', 'status', 'is_active', 'is_featured',
             'created_at', 'updated_at'
         ]
@@ -113,8 +119,28 @@ class PolicySerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source='insurance_company.name', read_only=True)
     company_logo = serializers.URLField(source='insurance_company.logo', read_only=True)
     category_name = serializers.CharField(source='policy_type.category.name', read_only=True)
+    motor_cover_type = serializers.CharField(source='policy_type.motor_cover_type', read_only=True)
+    tpo_max_installments = serializers.IntegerField(source='policy_type.tpo_max_installments', read_only=True)
     days_to_expiry = serializers.IntegerField(read_only=True)
     is_active = serializers.BooleanField(read_only=True)
+    payment_schedules = serializers.SerializerMethodField()
+
+    def get_payment_schedules(self, obj):
+        from apps.payments.models import PaymentSchedule
+        schedules = PaymentSchedule.objects.filter(policy=obj).order_by('installment_number')
+        return [
+            {
+                'id': str(s.id),
+                'installment_number': s.installment_number,
+                'schedule_type': s.schedule_type,
+                'amount': str(s.amount),
+                'due_date': str(s.due_date),
+                'status': s.status,
+                'notes': s.notes,
+                'paid_at': s.paid_at.isoformat() if s.paid_at else None,
+            }
+            for s in schedules
+        ]
 
     class Meta:
         model = Policy
@@ -122,16 +148,18 @@ class PolicySerializer(serializers.ModelSerializer):
             'id', 'policy_number', 'user', 'user_name', 'user_email',
             'policy_type', 'policy_type_name', 'insurance_company',
             'company_name', 'company_logo', 'category_name',
+            'motor_cover_type', 'tpo_max_installments',
             'status', 'start_date', 'end_date', 'premium_amount',
             'coverage_amount', 'payment_frequency', 'policy_data',
             'certificate_url', 'policy_document_url', 'beneficiaries',
             'days_to_expiry', 'is_active',
-            # Comprehensive motor payment flow
+            # Motor payment flow
             'payment_stage', 'initial_payment_amount', 'true_premium',
             'valuation_required', 'valuation_letter_url',
             'valuation_due_at', 'valuation_completed_at',
             'valuation_extension_requested', 'valuation_extension_approved',
             'cover_expires_at',
+            'payment_schedules',
             'created_at', 'updated_at', 'activated_at', 'cancelled_at',
         ]
         read_only_fields = [
@@ -145,13 +173,15 @@ class PolicySerializer(serializers.ModelSerializer):
 
 class PolicyCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating new policies"""
+    installment_choice = serializers.IntegerField(required=False, default=1, write_only=True)
 
     class Meta:
         model = Policy
         fields = [
             'policy_type', 'insurance_company', 'start_date',
             'end_date', 'premium_amount', 'coverage_amount',
-            'payment_frequency', 'policy_data', 'beneficiaries'
+            'payment_frequency', 'policy_data', 'beneficiaries',
+            'installment_choice',
         ]
 
     def validate_payment_frequency(self, value):
@@ -161,13 +191,6 @@ class PolicyCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Validate policy creation data"""
-        # Ensure end_date is after start_date
-        if data['end_date'] <= data['start_date']:
-            raise serializers.ValidationError({
-                'end_date': 'End date must be after start date'
-            })
-
-        # Validate coverage amount against policy type limits
         policy_type = data['policy_type']
         coverage = data['coverage_amount']
 
@@ -189,8 +212,10 @@ class PolicyCreateSerializer(serializers.ModelSerializer):
         import string
         from decimal import Decimal, ROUND_HALF_UP
         from django.utils import timezone
-        from datetime import timedelta
+        from datetime import timedelta, date
         from apps.payments.models import PaymentSchedule
+
+        installment_choice = validated_data.pop('installment_choice', 1)
 
         now = timezone.now()
         year = now.year
@@ -208,9 +233,28 @@ class PolicyCreateSerializer(serializers.ModelSerializer):
 
         policy_type = validated_data['policy_type']
         is_commission = policy_type.rate_type == 'commission_percent'
+        is_tor = policy_type.motor_cover_type == 'tor'
+        is_tpo = policy_type.motor_cover_type == 'tpo'
+        use_2_installments = (
+            is_tpo and
+            installment_choice == 2 and
+            policy_type.tpo_max_installments >= 2 and
+            policy_type.tpo_installment_1_amount is not None
+        )
+
+        # TOR: force 1-month duration
+        if is_tor:
+            start = validated_data['start_date']
+            # Add 1 month
+            month = start.month + 1
+            year_offset = 0
+            if month > 12:
+                month = 1
+                year_offset = 1
+            validated_data['end_date'] = date(start.year + year_offset, month, start.day)
 
         if is_commission:
-            # Comprehensive motor flow
+            # Comprehensive motor flow — 40% initial payment
             estimated_premium = Decimal(str(validated_data['premium_amount']))
             initial_amount = (estimated_premium * Decimal('0.40')).quantize(
                 Decimal('0.01'), rounding=ROUND_HALF_UP
@@ -219,12 +263,13 @@ class PolicyCreateSerializer(serializers.ModelSerializer):
             validated_data['initial_payment_amount'] = initial_amount
             validated_data['valuation_required'] = True
             validated_data['valuation_due_at'] = now + timedelta(days=30)
+        elif use_2_installments:
+            validated_data['payment_stage'] = 'installment_1_pending'
         else:
             validated_data['payment_stage'] = 'not_applicable'
 
         policy = super().create(validated_data)
 
-        # Auto-create payment schedule(s)
         today = now.date()
         if is_commission:
             PaymentSchedule.objects.create(
@@ -235,7 +280,26 @@ class PolicyCreateSerializer(serializers.ModelSerializer):
                 due_date=today,
                 notes='Initial payment (40% of estimated premium). 1-month comprehensive cover issued upon payment.',
             )
-            # Installment 1 & 2 will be created by admin after uploading valuation report
+        elif use_2_installments:
+            inst1 = policy_type.tpo_installment_1_amount
+            inst2 = policy_type.tpo_installment_2_amount or (Decimal(str(policy.premium_amount)) - inst1)
+            due2 = today + timedelta(days=90)
+            PaymentSchedule.objects.create(
+                policy=policy,
+                installment_number=1,
+                schedule_type='installment_1',
+                amount=inst1,
+                due_date=today,
+                notes='TPO first installment — cover begins upon payment.',
+            )
+            PaymentSchedule.objects.create(
+                policy=policy,
+                installment_number=2,
+                schedule_type='installment_2',
+                amount=inst2,
+                due_date=due2,
+                notes=f'TPO second installment (balance) — due by {due2}.',
+            )
         else:
             PaymentSchedule.objects.create(
                 policy=policy,

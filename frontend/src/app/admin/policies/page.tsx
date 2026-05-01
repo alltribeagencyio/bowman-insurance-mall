@@ -39,13 +39,12 @@ import { apiClient } from '@/lib/api/client'
 interface UserPolicy {
   id: string
   policy_number: string
-  policy_type: { name: string; category: string }
+  policy_type: { name: string; category: string; motor_cover_type?: string | null }
   user: { first_name: string; last_name: string; email: string }
   premium_amount: number
   status: string
   start_date: string
   end_date: string
-  // Comprehensive motor payment flow
   payment_stage?: string
   valuation_required?: boolean
   valuation_due_at?: string | null
@@ -53,6 +52,16 @@ interface UserPolicy {
   valuation_extension_requested?: boolean
   valuation_extension_approved?: boolean
   true_premium?: number | null
+  payment_schedules?: Array<{
+    id: string
+    installment_number: number
+    schedule_type: string
+    amount: number
+    due_date: string
+    status: string
+    notes: string
+    paid_at?: string | null
+  }>
 }
 
 const CATEGORIES = ['Motor', 'Medical', 'Life', 'Home', 'Travel', 'Business']
@@ -80,6 +89,10 @@ function PolicyTypeDialog({ open, initial, companies, onClose, onSaved }: Policy
     min_premium: initial?.min_premium != null ? Number(initial.min_premium) : ('' as number | ''),
     min_coverage_amount: Number(initial?.min_coverage_amount ?? 0),
     max_coverage_amount: Number(initial?.max_coverage_amount ?? 0),
+    motor_cover_type: (initial?.motor_cover_type ?? '') as 'tpo' | 'comprehensive' | 'tor' | '',
+    tpo_max_installments: initial?.tpo_max_installments ?? 1,
+    tpo_installment_1_amount: initial?.tpo_installment_1_amount != null ? Number(initial.tpo_installment_1_amount) : ('' as number | ''),
+    tpo_installment_2_amount: initial?.tpo_installment_2_amount != null ? Number(initial.tpo_installment_2_amount) : ('' as number | ''),
     features: initial?.features?.length ? [...initial.features] : [''],
     exclusions: initial?.exclusions?.length ? [...initial.exclusions] : [''],
     status: (initial?.status ?? 'published') as 'draft' | 'published' | 'delisted',
@@ -113,6 +126,9 @@ function PolicyTypeDialog({ open, initial, companies, onClose, onSaved }: Policy
       ...form,
       commission_rate: form.commission_rate === '' ? null : form.commission_rate,
       min_premium: form.min_premium === '' ? null : form.min_premium,
+      motor_cover_type: form.motor_cover_type === '' ? null : form.motor_cover_type,
+      tpo_installment_1_amount: form.tpo_installment_1_amount === '' ? null : form.tpo_installment_1_amount,
+      tpo_installment_2_amount: form.tpo_installment_2_amount === '' ? null : form.tpo_installment_2_amount,
       features: form.features.filter(f => f.trim()),
       exclusions: form.exclusions.filter(e => e.trim()),
     }
@@ -253,6 +269,89 @@ function PolicyTypeDialog({ open, initial, companies, onClose, onSaved }: Policy
               </div>
             </div>
           </div>
+
+          {/* ── Motor Cover Type ── */}
+          {(form.category === 'Motor' || form.motor_cover_type) && (
+            <div className="space-y-4 rounded-md border p-4 bg-muted/30">
+              <p className="text-sm font-medium">Motor Cover Configuration</p>
+              <div className="space-y-2">
+                <Label>Motor Cover Type</Label>
+                <Select
+                  value={form.motor_cover_type || ''}
+                  onValueChange={v => setForm(f => ({
+                    ...f,
+                    motor_cover_type: v as 'tpo' | 'comprehensive' | 'tor' | '',
+                    tpo_max_installments: 1,
+                    tpo_installment_1_amount: '',
+                    tpo_installment_2_amount: '',
+                  }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select cover type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tpo">Third Party Only (TPO) — Annual</SelectItem>
+                    <SelectItem value="comprehensive">Comprehensive</SelectItem>
+                    <SelectItem value="tor">Time on Risk (TOR) — 1 Month TPO, not renewable</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {form.motor_cover_type === 'tpo' && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Installments Allowed</Label>
+                    <Select
+                      value={String(form.tpo_max_installments)}
+                      onValueChange={v => setForm(f => ({
+                        ...f,
+                        tpo_max_installments: Number(v),
+                        tpo_installment_1_amount: Number(v) === 1 ? '' : f.tpo_installment_1_amount,
+                        tpo_installment_2_amount: Number(v) === 1 ? '' : f.tpo_installment_2_amount,
+                      }))}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 — Full payment only</SelectItem>
+                        <SelectItem value="2">2 — Allow 2 installments</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {form.tpo_max_installments === 2 && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>1st Installment Amount (KES) *</Label>
+                        <Input
+                          type="number"
+                          value={form.tpo_installment_1_amount}
+                          onChange={e => setForm(f => ({ ...f, tpo_installment_1_amount: e.target.value === '' ? '' : Number(e.target.value) }))}
+                          min={0}
+                          placeholder="e.g. 5000"
+                        />
+                        <p className="text-xs text-muted-foreground">Due at purchase</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>2nd Installment Amount (KES)</Label>
+                        <Input
+                          type="number"
+                          value={form.tpo_installment_2_amount}
+                          onChange={e => setForm(f => ({ ...f, tpo_installment_2_amount: e.target.value === '' ? '' : Number(e.target.value) }))}
+                          min={0}
+                          placeholder="Leave blank = auto (total minus 1st)"
+                        />
+                        <p className="text-xs text-muted-foreground">Due ~90 days after purchase</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {form.motor_cover_type === 'tor' && (
+                <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+                  TOR policies have a fixed 1-month duration and cannot be renewed or extended. Full payment only.
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── Features (What's Covered) ── */}
           <div className="space-y-2">
@@ -853,12 +952,21 @@ export default function PoliciesPage() {
                       {userPolicies.map((policy) => {
                         const isValuationPending = policy.payment_stage === 'valuation_pending'
                         const hasExtensionRequest = policy.valuation_extension_requested && !policy.valuation_extension_approved
+                        const isTor = policy.policy_type?.motor_cover_type === 'tor'
+                        const schedules = policy.payment_schedules || []
+                        const pendingSchedules = schedules.filter(s => s.status === 'pending')
                         return (
                           <Fragment key={policy.id}>
                             <tr className="border-b hover:bg-muted/50">
                               <td className="p-4 font-mono text-sm">{policy.policy_number}</td>
                               <td className="p-4">{policy.user.first_name} {policy.user.last_name}</td>
-                              <td className="p-4">{policy.policy_type.name}</td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span>{policy.policy_type.name}</span>
+                                  {isTor && <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">TOR</Badge>}
+                                  {policy.policy_type?.motor_cover_type === 'tpo' && <Badge variant="outline" className="text-xs">TPO</Badge>}
+                                </div>
+                              </td>
                               <td className="p-4">{formatCurrency(policy.premium_amount)}</td>
                               <td className="p-4">
                                 <div className="flex flex-col gap-1">
@@ -935,6 +1043,28 @@ export default function PoliciesPage() {
                                 </div>
                               </td>
                             </tr>
+                            {/* Payment schedule sub-row */}
+                            {schedules.length > 0 && (
+                              <tr className="bg-muted/20 border-b">
+                                <td colSpan={6} className="px-6 pb-3 pt-1">
+                                  <div className="flex gap-4 flex-wrap text-xs">
+                                    {schedules.map(s => (
+                                      <span
+                                        key={s.id}
+                                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border ${
+                                          s.status === 'paid' ? 'border-green-400 bg-green-50 text-green-700' :
+                                          s.status === 'overdue' ? 'border-red-400 bg-red-50 text-red-700' :
+                                          'border-amber-400 bg-amber-50 text-amber-700'
+                                        }`}
+                                      >
+                                        {s.status === 'paid' ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                                        #{s.installment_number} KES {Number(s.amount).toLocaleString()} · {s.status} · due {new Date(s.due_date).toLocaleDateString()}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
                           </Fragment>
                         )
                       })}

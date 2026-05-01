@@ -112,6 +112,29 @@ class PolicyType(models.Model):
         help_text='Minimum annual premium enforced regardless of calculated amount (comprehensive motor floor)'
     )
 
+    # Motor cover type & TPO installment configuration
+    MOTOR_COVER_TYPE_CHOICES = [
+        ('tpo', 'Third Party Only (Annual)'),
+        ('comprehensive', 'Comprehensive'),
+        ('tor', 'Time on Risk (1 Month TPO)'),
+    ]
+    motor_cover_type = models.CharField(
+        max_length=20, choices=MOTOR_COVER_TYPE_CHOICES, null=True, blank=True,
+        help_text='Motor cover sub-type — determines payment flow and duration'
+    )
+    tpo_max_installments = models.IntegerField(
+        default=1, choices=[(1, '1 Installment (Full Payment)'), (2, '2 Installments')],
+        help_text='For TPO: admin-configured number of installments allowed'
+    )
+    tpo_installment_1_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text='Admin-set amount for TPO first installment'
+    )
+    tpo_installment_2_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text='Admin-set amount for TPO second installment (balance)'
+    )
+
     # Status and visibility
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', db_index=True, help_text='Draft policies are hidden from frontend')
     is_active = models.BooleanField(default=True, db_index=True)

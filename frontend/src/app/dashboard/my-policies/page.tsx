@@ -22,7 +22,9 @@ import {
   Loader2,
   ClipboardList,
   ExternalLink,
-  Clock
+  Clock,
+  CreditCard,
+  CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProtectedRoute } from '@/components/auth/protected-route'
@@ -298,10 +300,20 @@ function MyPoliciesContent() {
                       ))
 
                   const isValuationPending = policy.payment_stage === 'valuation_pending'
-                  const hasInstallmentDue =
-                    policy.payment_stage === 'installment_1_pending' ||
-                    policy.payment_stage === 'installment_2_pending'
-                  const hasInitialDue = policy.payment_stage === 'initial_pending'
+                  const isTor = policy.motor_cover_type === 'tor'
+
+                  // Pending payment schedules
+                  const schedules = policy.payment_schedules || []
+                  const pendingSchedules = schedules.filter(s => s.status === 'pending')
+                  const nextPending = pendingSchedules[0]
+                  const showPayNow = nextPending && policy.status !== 'cancelled'
+
+                  const scheduleLabel: Record<string, string> = {
+                    full: 'Full Payment',
+                    initial: 'Initial Payment (40%)',
+                    installment_1: '1st Installment',
+                    installment_2: '2nd Installment',
+                  }
 
                   return (
                     <div key={policy.id}>
@@ -309,7 +321,7 @@ function MyPoliciesContent() {
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                           {/* Left Section */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               {getStatusIcon(policy.status)}
                               <h3 className="font-semibold text-sm truncate">
                                 {policy.policy_type_name}
@@ -317,10 +329,21 @@ function MyPoliciesContent() {
                               <Badge variant={getStatusBadgeVariant(policy.status)} className="flex-shrink-0">
                                 {policy.status}
                               </Badge>
+                              {isTor && (
+                                <Badge variant="secondary" className="flex-shrink-0 bg-amber-100 text-amber-800">
+                                  TOR · 1 Month
+                                </Badge>
+                              )}
                               {isValuationPending && (
                                 <Badge variant="outline" className="flex-shrink-0 border-amber-500 text-amber-700 bg-amber-50">
                                   <Clock className="w-3 h-3 mr-1" />
                                   Valuation Pending
+                                </Badge>
+                              )}
+                              {nextPending && !isValuationPending && (
+                                <Badge variant="outline" className="flex-shrink-0 border-blue-500 text-blue-700 bg-blue-50">
+                                  <CreditCard className="w-3 h-3 mr-1" />
+                                  Payment Due
                                 </Badge>
                               )}
                             </div>
@@ -333,8 +356,7 @@ function MyPoliciesContent() {
                           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                             <div>
                               <span className="text-muted-foreground">Premium: </span>
-                              <span className="font-medium">KES {policy.premium_amount.toLocaleString()}</span>
-                              <span className="text-muted-foreground text-xs"> /{policy.premium_frequency}</span>
+                              <span className="font-medium">KES {Number(policy.premium_amount).toLocaleString()}</span>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Expires: </span>
@@ -362,21 +384,64 @@ function MyPoliciesContent() {
                               <Download className="w-4 h-4 mr-1" />
                               Certificate
                             </Button>
-                            {policy.status === 'expired' && (
+                            {policy.status === 'expired' && !isTor && (
                               <Button size="sm" onClick={() => handleRenewPolicy(policy.id)}>
                                 <RefreshCw className="w-4 h-4 mr-1" />
                                 Renew
                               </Button>
                             )}
-                            {(hasInitialDue || hasInstallmentDue) && (
-                              <Button size="sm" asChild>
+                            {showPayNow && !isValuationPending && (
+                              <Button size="sm" asChild className="bg-green-600 hover:bg-green-700">
                                 <Link href={`/payment/${policy.id}`}>
-                                  Pay Balance
+                                  <CreditCard className="w-4 h-4 mr-1" />
+                                  Pay Now
                                 </Link>
                               </Button>
                             )}
                           </div>
                         </div>
+
+                        {/* Payment Schedule Section */}
+                        {schedules.length > 0 && (
+                          <div className="mt-3 ml-0 lg:ml-8 rounded-lg border bg-muted/20 overflow-hidden">
+                            <div className="px-3 py-2 bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                              Payment Schedule
+                            </div>
+                            <div className="divide-y">
+                              {schedules.map(s => (
+                                <div key={s.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    {s.status === 'paid' ? (
+                                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                    ) : s.status === 'overdue' ? (
+                                      <AlertCircle className="h-4 w-4 text-red-500" />
+                                    ) : (
+                                      <Clock className="h-4 w-4 text-amber-500" />
+                                    )}
+                                    <span className="font-medium">{scheduleLabel[s.schedule_type] || `Installment ${s.installment_number}`}</span>
+                                    <span className="text-muted-foreground">· Due {new Date(s.due_date).toLocaleDateString()}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <span className={`font-semibold ${s.status === 'paid' ? 'text-green-600' : s.status === 'overdue' ? 'text-red-600' : 'text-foreground'}`}>
+                                      KES {Number(s.amount).toLocaleString()}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-xs ${s.status === 'paid' ? 'border-green-500 text-green-700' : s.status === 'overdue' ? 'border-red-500 text-red-700' : 'border-amber-500 text-amber-700'}`}
+                                    >
+                                      {s.status}
+                                    </Badge>
+                                    {s.status === 'pending' && !isValuationPending && (
+                                      <Button size="sm" variant="outline" asChild className="h-7 text-xs">
+                                        <Link href={`/payment/${policy.id}`}>Pay</Link>
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Valuation Pending Task Banner */}

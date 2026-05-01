@@ -38,6 +38,10 @@ export interface PolicyType {
   min_premium?: string | null
   min_coverage_amount?: string
   max_coverage_amount?: string
+  motor_cover_type?: 'tpo' | 'comprehensive' | 'tor' | null
+  tpo_max_installments?: number
+  tpo_installment_1_amount?: string | null
+  tpo_installment_2_amount?: string | null
   features: string[]
   status: string
   is_featured: boolean
@@ -71,6 +75,10 @@ export interface PolicyTypeDetail {
   rate_type: 'flat' | 'commission_percent'
   commission_rate?: string | null
   min_premium?: string | null
+  motor_cover_type?: 'tpo' | 'comprehensive' | 'tor' | null
+  tpo_max_installments?: number
+  tpo_installment_1_amount?: string | null
+  tpo_installment_2_amount?: string | null
   coverage_details?: Record<string, unknown>
   features: string[]
   exclusions: string[]
