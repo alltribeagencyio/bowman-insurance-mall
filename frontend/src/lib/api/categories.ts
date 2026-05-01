@@ -35,6 +35,7 @@ export interface PolicyType {
   base_premium: string
   rate_type: 'flat' | 'commission_percent'
   commission_rate?: string | null
+  min_premium?: string | null
   min_coverage_amount?: string
   max_coverage_amount?: string
   features: string[]
@@ -69,6 +70,7 @@ export interface PolicyTypeDetail {
   base_premium: string
   rate_type: 'flat' | 'commission_percent'
   commission_rate?: string | null
+  min_premium?: string | null
   coverage_details?: Record<string, unknown>
   features: string[]
   exclusions: string[]
@@ -95,6 +97,8 @@ export interface QuoteResult {
   coverage_amount: string
   rate_description: string
   net_premium: string
+  min_premium_applied: boolean
+  min_premium: string | null
   levies: {
     ira_levy: string
     phf: string

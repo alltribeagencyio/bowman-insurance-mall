@@ -616,8 +616,17 @@ export default function PurchasePage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold">KES {product.premium.toLocaleString()}</div>
-                  <p className="text-sm text-muted-foreground">per month</p>
+                  {product.rate_type === 'commission_percent' ? (
+                    <>
+                      <div className="text-lg font-semibold text-muted-foreground">Commission-based</div>
+                      <p className="text-sm text-muted-foreground">{Number(product.commission_rate)}% of vehicle value</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">KES {product.premium.toLocaleString()}</div>
+                      <p className="text-sm text-muted-foreground">per year</p>
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -1520,6 +1529,12 @@ function PolicyDetailsStep({ data, onChange, product, vehicleData }: any) {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Base Premium</span>
                 <span>{fmt(quote.net_premium)}</span>
+              </div>
+            )}
+            {quote.min_premium_applied && (
+              <div className="flex justify-between text-amber-600 bg-amber-50 rounded px-2 py-1">
+                <span>Minimum premium applied</span>
+                <span>{fmt(quote.min_premium ?? 0)}</span>
               </div>
             )}
             <div className="flex justify-between text-muted-foreground">

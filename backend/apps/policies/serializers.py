@@ -54,7 +54,7 @@ class PolicyTypeSerializer(serializers.ModelSerializer):
             'id', 'name', 'category',
             'insurance_company', 'insurance_company_name',
             'description', 'base_premium',
-            'rate_type', 'commission_rate',
+            'rate_type', 'commission_rate', 'min_premium',
             'min_coverage_amount', 'max_coverage_amount',
             'features', 'exclusions',
             'status', 'is_active', 'is_featured',
@@ -80,7 +80,7 @@ class PolicyTypeListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'description', 'category_name', 'company_name',
             'company_logo', 'company_rating', 'base_premium',
-            'rate_type', 'commission_rate',
+            'rate_type', 'commission_rate', 'min_premium',
             'min_coverage_amount', 'max_coverage_amount',
             'is_featured', 'features', 'status'
         ]
@@ -96,7 +96,7 @@ class PolicyTypeDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'category', 'insurance_company', 'name', 'slug',
             'description', 'base_premium',
-            'rate_type', 'commission_rate',
+            'rate_type', 'commission_rate', 'min_premium',
             'coverage_details', 'features', 'exclusions', 'requirements', 'terms_and_conditions',
             'min_coverage_amount', 'max_coverage_amount',
             'min_age', 'max_age', 'status', 'is_active', 'is_featured',

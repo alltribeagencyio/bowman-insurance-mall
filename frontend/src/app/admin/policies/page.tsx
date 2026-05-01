@@ -77,6 +77,7 @@ function PolicyTypeDialog({ open, initial, companies, onClose, onSaved }: Policy
     base_premium: Number(initial?.base_premium ?? 0),
     rate_type: (initial?.rate_type ?? 'flat') as 'flat' | 'commission_percent',
     commission_rate: initial?.commission_rate != null ? Number(initial.commission_rate) : ('' as number | ''),
+    min_premium: initial?.min_premium != null ? Number(initial.min_premium) : ('' as number | ''),
     min_coverage_amount: Number(initial?.min_coverage_amount ?? 0),
     max_coverage_amount: Number(initial?.max_coverage_amount ?? 0),
     features: initial?.features?.length ? [...initial.features] : [''],
@@ -111,6 +112,7 @@ function PolicyTypeDialog({ open, initial, companies, onClose, onSaved }: Policy
     const payload = {
       ...form,
       commission_rate: form.commission_rate === '' ? null : form.commission_rate,
+      min_premium: form.min_premium === '' ? null : form.min_premium,
       features: form.features.filter(f => f.trim()),
       exclusions: form.exclusions.filter(e => e.trim()),
     }
@@ -207,20 +209,36 @@ function PolicyTypeDialog({ open, initial, companies, onClose, onSaved }: Policy
                 />
               </div>
             ) : (
-              <div className="space-y-2">
-                <Label>Commission Rate (%) *</Label>
-                <Input
-                  type="number"
-                  value={form.commission_rate}
-                  onChange={e => setForm(f => ({ ...f, commission_rate: e.target.value === '' ? '' : Number(e.target.value) }))}
-                  min={0}
-                  max={100}
-                  step={0.01}
-                  placeholder="e.g. 5 for 5% of vehicle value"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Annual premium = Vehicle value × rate% + statutory levies (IRA 0.2%, PHF 0.25%, Training 0.1%, Stamp Duty KES 40)
-                </p>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Commission Rate (%) *</Label>
+                  <Input
+                    type="number"
+                    value={form.commission_rate}
+                    onChange={e => setForm(f => ({ ...f, commission_rate: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    min={0}
+                    max={100}
+                    step={0.01}
+                    placeholder="e.g. 5 for 5% of vehicle value"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Annual premium = Vehicle value × rate% + statutory levies (IRA 0.2%, PHF 0.25%, Training 0.1%, Stamp Duty KES 40)
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Minimum Premium (KES)</Label>
+                  <Input
+                    type="number"
+                    value={form.min_premium}
+                    onChange={e => setForm(f => ({ ...f, min_premium: e.target.value === '' ? '' : Number(e.target.value) }))}
+                    min={0}
+                    step={0.01}
+                    placeholder="e.g. 15000 — applied when calculated premium is lower"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    If the calculated premium (vehicle value × rate) is below this floor, this minimum is charged instead.
+                  </p>
+                </div>
               </div>
             )}
 

@@ -107,6 +107,10 @@ class PolicyType(models.Model):
         max_digits=6, decimal_places=4, null=True, blank=True,
         help_text='Rate percentage for commission-based pricing, e.g. 5.0000 means 5%'
     )
+    min_premium = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text='Minimum annual premium enforced regardless of calculated amount (comprehensive motor floor)'
+    )
 
     # Status and visibility
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', db_index=True, help_text='Draft policies are hidden from frontend')

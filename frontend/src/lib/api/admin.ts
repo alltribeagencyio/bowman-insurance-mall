@@ -84,6 +84,7 @@ export interface PolicyType {
   base_premium: number
   rate_type: 'flat' | 'commission_percent'
   commission_rate?: number | null   // e.g. 5.0 means 5%
+  min_premium?: number | null
   min_coverage_amount?: number | null
   max_coverage_amount?: number | null
   features: string[]

@@ -178,6 +178,12 @@ class PolicyTypeViewSet(viewsets.ReadOnlyModelViewSet):
             net_premium = Decimal(str(policy_type.base_premium))
             rate_description = 'Flat rate'
 
+        # ── Minimum premium floor ────────────────────────────────────────────
+        min_premium_applied = False
+        if policy_type.min_premium and net_premium < Decimal(str(policy_type.min_premium)):
+            net_premium = Decimal(str(policy_type.min_premium)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            min_premium_applied = True
+
         # ── Kenya statutory levies (IRA) ─────────────────────────────────────
         # IRA Levy: 0.2% of net premium
         ira_levy = (net_premium * Decimal('0.002')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -203,6 +209,8 @@ class PolicyTypeViewSet(viewsets.ReadOnlyModelViewSet):
             'coverage_amount': str(coverage),
             'rate_description': rate_description,
             'net_premium': str(net_premium),
+            'min_premium_applied': min_premium_applied,
+            'min_premium': str(policy_type.min_premium) if policy_type.min_premium else None,
             'levies': {
                 'ira_levy': str(ira_levy),
                 'phf': str(phf),
