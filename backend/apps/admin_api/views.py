@@ -408,21 +408,63 @@ class InsuranceCompanyManagementViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAdmin])
 def get_admin_policies(request):
     """List all user policies (admin view)"""
+    search = request.query_params.get('search', '')
+    status_filter = request.query_params.get('status', '')
+    category_filter = request.query_params.get('category', '')
+
     policies = Policy.objects.select_related(
-        'user', 'policy_type', 'insurance_company'
-    ).order_by('-created_at')[:100]
+        'user', 'policy_type', 'policy_type__category', 'insurance_company'
+    ).order_by('-created_at')
+
+    if search:
+        policies = policies.filter(
+            Q(policy_number__icontains=search) |
+            Q(user__first_name__icontains=search) |
+            Q(user__last_name__icontains=search) |
+            Q(user__email__icontains=search) |
+            Q(policy_type__name__icontains=search)
+        )
+    if status_filter:
+        policies = policies.filter(status=status_filter)
+    if category_filter:
+        policies = policies.filter(policy_type__category__name__icontains=category_filter)
+
+    policies = policies[:200]
 
     data = [{
         'id': str(p.id),
         'policy_number': p.policy_number,
-        'user': {'id': str(p.user.id), 'name': p.user.full_name, 'email': p.user.email},
-        'policy_type': p.policy_type.name if p.policy_type else '',
+        'user': {
+            'id': str(p.user.id),
+            'first_name': p.user.first_name,
+            'last_name': p.user.last_name,
+            'email': p.user.email,
+        },
+        'policy_type': {
+            'name': p.policy_type.name if p.policy_type else '',
+            'category': p.policy_type.category.name if p.policy_type and p.policy_type.category else '',
+        },
         'insurance_company': p.insurance_company.name if p.insurance_company else '',
         'premium_amount': float(p.premium_amount),
+        'coverage_amount': float(p.coverage_amount) if p.coverage_amount else None,
+        'payment_frequency': p.premium_frequency,
         'status': p.status,
         'start_date': str(p.start_date) if p.start_date else None,
         'end_date': str(p.end_date) if p.end_date else None,
         'created_at': p.created_at.isoformat(),
+        # Motor comprehensive payment flow
+        'payment_stage': p.payment_stage,
+        'initial_payment_amount': float(p.initial_payment_amount) if p.initial_payment_amount else None,
+        'true_premium': float(p.true_premium) if p.true_premium else None,
+        'valuation_required': p.valuation_required,
+        'valuation_due_at': p.valuation_due_at.isoformat() if p.valuation_due_at else None,
+        'valuation_completed_at': p.valuation_completed_at.isoformat() if p.valuation_completed_at else None,
+        'valuation_letter_url': p.valuation_letter_url,
+        'valuation_extension_requested': p.valuation_extension_requested,
+        'valuation_extension_approved': p.valuation_extension_approved,
+        'cover_expires_at': p.cover_expires_at.isoformat() if p.cover_expires_at else None,
+        # Vehicle details from policy_data JSON
+        'vehicle_details': p.policy_data.get('vehicle_details') if p.policy_data else None,
     } for p in policies]
 
     return Response({'results': data, 'count': len(data)})

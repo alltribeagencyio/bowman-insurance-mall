@@ -441,14 +441,21 @@ export default function PurchasePage() {
       // Prepare policy data based on category
       let policyData: any = {}
       if (formData.vehicle) {
-        policyData = {
-          vehicle_details: {
-            make: formData.vehicle.make,
-            model: formData.vehicle.model,
-            year: parseInt(formData.vehicle.year),
-            registration: formData.vehicle.registration,
-            value: parseFloat(formData.vehicle.value)
+        // Vehicle data comes from either a saved vehicle or a newly-entered vehicle
+        const vd = formData.vehicle.newVehicle || formData.vehicle.selectedVehicleDetails
+        if (vd) {
+          policyData = {
+            vehicle_details: {
+              make: vd.make,
+              model: vd.model,
+              year: parseInt(String(vd.year)),
+              registration: vd.registration,
+              value: parseFloat(String(vd.value)),
+            }
           }
+        }
+        if (formData.vehicle.selectedVehicle) {
+          policyData.vehicle_id = formData.vehicle.selectedVehicle
         }
       }
 
@@ -858,7 +865,18 @@ function VehicleStep({ data, onChange }: any) {
                       name="vehicle"
                       value={vehicle.id}
                       checked={data?.selectedVehicle === vehicle.id}
-                      onChange={() => onChange({ selectedVehicle: vehicle.id, newVehicle: null, vehicleValue: vehicle.details.value })}
+                      onChange={() => onChange({
+                        selectedVehicle: vehicle.id,
+                        newVehicle: null,
+                        vehicleValue: vehicle.details.value,
+                        selectedVehicleDetails: {
+                          make: vehicle.details.make,
+                          model: vehicle.details.model,
+                          year: vehicle.details.year,
+                          registration: vehicle.details.registration,
+                          value: vehicle.details.value,
+                        },
+                      })}
                       className="w-4 h-4"
                     />
                     <Car className="h-5 w-5 text-primary" />
