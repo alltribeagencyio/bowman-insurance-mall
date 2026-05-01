@@ -396,21 +396,49 @@ export default function PurchasePage() {
   }
 
   const validateStep = (stepId: string): boolean => {
-    // Add validation logic for each step
     switch (stepId) {
-      case 'personal':
-        if (!formData.personal?.firstName || !formData.personal?.lastName || !formData.personal?.email || !formData.personal?.phone) {
-          toast.error('Please fill in all required personal information')
+      case 'personal': {
+        const p = formData.personal
+        if (!p?.firstName || !p?.lastName || !p?.email || !p?.phone) {
+          toast.error('Please fill in your name, email, and phone number')
+          return false
+        }
+        if (!p?.idNumber) {
+          toast.error('Please enter your ID number')
+          return false
+        }
+        if (!p?.dateOfBirth) {
+          toast.error('Please enter your date of birth')
           return false
         }
         break
-      case 'vehicle':
-        if (!formData.vehicle?.selectedVehicle && !formData.vehicle?.newVehicle) {
+      }
+      case 'vehicle': {
+        const v = formData.vehicle
+        if (!v?.selectedVehicle && !v?.newVehicle) {
           toast.error('Please select or add a vehicle')
           return false
         }
+        if (v?.newVehicle) {
+          const nv = v.newVehicle
+          if (!nv.make || !nv.model || !nv.year || !nv.registration || !nv.value) {
+            toast.error('Please fill in all vehicle details (make, model, year, registration, value)')
+            return false
+          }
+        }
         break
-      // Add more validation as needed
+      }
+      case 'policy': {
+        if (!formData.policy?.startDate) {
+          toast.error('Please select a policy start date')
+          return false
+        }
+        if (product?.rate_type === 'commission_percent' && !formData.policy?.calculatedPremium) {
+          toast.error('Premium could not be calculated. Please go back and verify vehicle details.')
+          return false
+        }
+        break
+      }
     }
     return true
   }
@@ -1702,19 +1730,17 @@ function ReviewStep({ formData, product, steps }: any) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Start Date</p>
-                <p className="font-medium">{formData.policy.startDate}</p>
+                <p className="font-medium">{formData.policy.startDate || 'Not set'}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Duration</p>
-                <p className="font-medium">{formData.policy.duration} months</p>
+                <p className="font-medium">12 months</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Payment Plan</p>
-                <p className="font-medium capitalize">{formData.policy.paymentPlan}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Premium</p>
-                <p className="font-medium">KES {product.premium.toLocaleString()}/month</p>
+                <p className="text-sm text-muted-foreground">Annual Premium</p>
+                <p className="font-medium">
+                  KES {Number(formData.policy.calculatedPremium || product.premium).toLocaleString()}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -1725,7 +1751,7 @@ function ReviewStep({ formData, product, steps }: any) {
         <div className="flex items-center justify-between mb-2">
           <span className="font-semibold">Total Annual Premium:</span>
           <span className="text-2xl font-bold text-primary">
-            KES {(product.premium * (parseInt(formData.policy?.duration || '12'))).toLocaleString()}
+            KES {Number(formData.policy?.calculatedPremium || product.premium).toLocaleString()}
           </span>
         </div>
         <p className="text-xs text-muted-foreground">
